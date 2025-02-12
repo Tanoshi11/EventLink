@@ -10,26 +10,22 @@ users_collection = db["users"]  # Collection to store users
 # Function to check login credentials
 def check_login(username, password):
     user = users_collection.find_one({"username": username})
-
     if user:
         stored_password = user["password"].encode()  # Convert string back to bytes
-
         if bcrypt.checkpw(password.encode(), stored_password):
             return True
     return False
 
-
-
 # Function to register a new user
 def register_user(username, password):
+    if not password:  # Ensure password is not empty
+        return "Password is required!"
     if users_collection.find_one({"username": username}):
-        return False  # User already exists
-
+        return "Username already exists!"
+    
     hashed_password = bcrypt.hashpw(password.encode(), bcrypt.gensalt())  
     users_collection.insert_one({"username": username, "password": hashed_password.decode()})  # Store as string
-    return True
-
-
+    return "Success"
 
 def main(page: ft.Page):
     page.title = "Login & Signup System"
@@ -72,11 +68,15 @@ def main(page: ft.Page):
     signup_message = ft.Text("", color="red")
 
     def signup(e):
-        if register_user(signup_username.value, signup_password.value):
+        result = register_user(signup_username.value, signup_password.value)
+        if result == "Success":
             signup_message.value = "Signup Successful! Please log in."
             signup_message.color = "green"
+            page.update()
+            ft.dialog.alert("Signup Successful! Redirecting to login page...")
+            show_login()  # Redirect to login page after signup
         else:
-            signup_message.value = "Username already exists!"
+            signup_message.value = result
             signup_message.color = "red"
         page.update()
 
