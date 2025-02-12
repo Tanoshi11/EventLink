@@ -1,2 +1,2 @@
-# G1-PROJECT
+# EventLink
 Local Event Coordination Platform
