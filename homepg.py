@@ -1,18 +1,30 @@
 import flet as ft
+import httpx
 
 def main(page: ft.Page):
-    page.title = "EventLink"
-    
-    # The logout function now calls load_login from login.py instead of reinitializing the app.
+    page.title = "EventLink Homepage"
+
+    # Logout: returns user to login screen (via your login module)
     def logout(e):
          import login
          login.load_login(page)
     
+    # Optionally: Fetch events from your FastAPI endpoint.
+    # If you have an endpoint (e.g., GET /events) that returns a list of events,
+    # you can display them here. Otherwise, you may omit this section.
+    try:
+        response = httpx.get("http://127.0.0.1:8000/events")
+        response.raise_for_status()
+        events = response.json()  # Expected format: a list of dicts with at least a "title" key.
+        event_widgets = [ft.Text(event["title"], size=18) for event in events]
+    except Exception as ex:
+        event_widgets = [ft.Text("Failed to fetch events", color="red")]
+
     homepage_view = ft.Column([
         ft.Container(
             content=ft.Row([
                 ft.Container(width=15),
-                ft.Text("EventLink", size=30, weight=ft.FontWeight.BOLD),
+                ft.Text("EventLink 🎉", size=30, weight=ft.FontWeight.BOLD),
                 ft.Container(width=5),
                 ft.TextField(
                     label="Search Events", 
@@ -41,10 +53,12 @@ def main(page: ft.Page):
             padding=5
         ),
         ft.Container(
-            content=ft.Text("Welcome to EventLink!", size=50, weight=ft.FontWeight.BOLD), 
+            content=ft.Text("Welcome to EventLink!", size=50, weight=ft.FontWeight.BOLD),
             alignment=ft.alignment.center,
             expand=True
-        )
+        ),
+        # Optionally list events below the welcome message:
+        ft.Column(event_widgets, alignment=ft.MainAxisAlignment.CENTER)
     ], alignment=ft.MainAxisAlignment.CENTER, expand=True)
     
     page.controls.clear()

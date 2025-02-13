@@ -1,35 +1,11 @@
 import flet as ft
-from pymongo import MongoClient
-import bcrypt
+import httpx
 
-# Connect to MongoDB
-client = MongoClient("mongodb+srv://Tanoshi:nathaniel111@eventlink.1hfcs.mongodb.net/")
-db = client["EventLink"]  # Replace with your database name
-users_collection = db["users"]  # Collection to store users
-
-# Function to check login credentials
-def check_login(username, password):
-    user = users_collection.find_one({"username": username})
-    if user:
-        stored_password = user["password"].encode()  # Convert string back to bytes
-        if bcrypt.checkpw(password.encode(), stored_password):
-            return True
-    return False
-
-# Function to register a new user with validations for empty fields.
-def register_user(username, password):
-    if not username and not password:
-        return "Username and Password are required!"
-    if not username:
-        return "Username is required!"
-    if not password:
-        return "Password is required!"
-    if users_collection.find_one({"username": username}):
-        return "Username already exists!"
-    
-    hashed_password = bcrypt.hashpw(password.encode(), bcrypt.gensalt())
-    users_collection.insert_one({"username": username, "password": hashed_password.decode()})
-    return "Success"
+# For windowed fullscreen (maximized) window
+def main(page: ft.Page):
+    page.window_full_screen = False
+    page.window_maximized = True
+    load_login(page)
 
 # This function builds the login/signup views and loads them into the page.
 def load_login(page: ft.Page):
@@ -53,11 +29,18 @@ def load_login(page: ft.Page):
     login_message_container = ft.Container(content=login_message, margin=ft.margin.only(left=10))
     
     def login(e):
-        if check_login(login_username.value, login_password.value):
+        user_data = {
+            "username": login_username.value,
+            "password": login_password.value
+        }
+        try:
+            response = httpx.post("http://127.0.0.1:8000/login", json=user_data)
+            response.raise_for_status()
+            # If login is successful, switch to the homepage.
             import homepg
             homepg.main(page)
-        else:
-            login_message.value = "Invalid Username or Password!"
+        except httpx.HTTPStatusError as exc:
+            login_message.value = f"Login failed: {exc.response.json()['detail']}"
             login_message.color = "red"
             page.update()
 
@@ -77,7 +60,6 @@ def load_login(page: ft.Page):
     ], alignment=ft.MainAxisAlignment.CENTER)
 
     # The container expands to fill the page and aligns its content vertically centered and to the left.
-    # Increased margin to move the interface further to the right.
     login_view_container = ft.Container(
         content=login_view,
         alignment=ft.alignment.center_left,
@@ -105,15 +87,20 @@ def load_login(page: ft.Page):
     signup_message_container = ft.Container(content=signup_message, margin=ft.margin.only(left=10))
     
     def signup(e):
-        result = register_user(signup_username.value, signup_password.value)
-        if result == "Success":
+        user_data = {
+            "username": signup_username.value,
+            "password": signup_password.value
+        }
+        try:
+            response = httpx.post("http://127.0.0.1:8000/register", json=user_data)
+            response.raise_for_status()
             signup_message.value = "Signup Successful! Please log in."
             signup_message.color = "green"
             page.update()
             ft.dialog.alert("Signup Successful! Redirecting to login page...")
             switch_view(login_view_container)  # Redirect to login view after signup
-        else:
-            signup_message.value = result
+        except httpx.HTTPStatusError as exc:
+            signup_message.value = exc.response.json()["detail"]
             signup_message.color = "red"
         page.update()
 
@@ -167,9 +154,6 @@ def load_login(page: ft.Page):
     
     # Start with the login view.
     switch_view(login_view_container)
-
-def main(page: ft.Page):
-    load_login(page)
 
 if __name__ == "__main__":
     ft.app(target=main)
