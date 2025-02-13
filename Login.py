@@ -16,7 +16,6 @@ def check_login(username, password):
             return True
     return False
 
-<<<<<<< HEAD
 # Function to register a new user with validations for empty fields.
 def register_user(username, password):
     if not username and not password:
@@ -24,29 +23,16 @@ def register_user(username, password):
     if not username:
         return "Username is required!"
     if not password:
-=======
-# Function to register a new user
-def register_user(username, password):
-    if not password:  # Ensure password is not empty
->>>>>>> 3645e807539396092d5f12af37a36706249e03df
         return "Password is required!"
     if users_collection.find_one({"username": username}):
         return "Username already exists!"
     
-<<<<<<< HEAD
     hashed_password = bcrypt.hashpw(password.encode(), bcrypt.gensalt())
     users_collection.insert_one({"username": username, "password": hashed_password.decode()})
     return "Success"
 
 # This function builds the login/signup views and loads them into the page.
 def load_login(page: ft.Page):
-=======
-    hashed_password = bcrypt.hashpw(password.encode(), bcrypt.gensalt())  
-    users_collection.insert_one({"username": username, "password": hashed_password.decode()})  # Store as string
-    return "Success"
-
-def main(page: ft.Page):
->>>>>>> 3645e807539396092d5f12af37a36706249e03df
     page.title = "Login & Signup System"
 
     # --- Build Login View ---
@@ -125,11 +111,7 @@ def main(page: ft.Page):
             signup_message.color = "green"
             page.update()
             ft.dialog.alert("Signup Successful! Redirecting to login page...")
-<<<<<<< HEAD
             switch_view(login_view_container)  # Redirect to login view after signup
-=======
-            show_login()  # Redirect to login page after signup
->>>>>>> 3645e807539396092d5f12af37a36706249e03df
         else:
             signup_message.value = result
             signup_message.color = "red"
