@@ -1,7 +1,7 @@
 import flet as ft
 
 def main(page: ft.Page):
-    page.title = "EventLink Homepage"
+    page.title = "EventLink"
     
     # The logout function now calls load_login from login.py instead of reinitializing the app.
     def logout(e):
@@ -12,7 +12,7 @@ def main(page: ft.Page):
         ft.Container(
             content=ft.Row([
                 ft.Container(width=15),
-                ft.Text("EventLink 🎉", size=30, weight=ft.FontWeight.BOLD),
+                ft.Text("EventLink", size=30, weight=ft.FontWeight.BOLD),
                 ft.Container(width=5),
                 ft.TextField(
                     label="Search Events", 

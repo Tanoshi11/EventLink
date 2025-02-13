@@ -33,7 +33,7 @@ def register_user(username, password):
 
 # This function builds the login/signup views and loads them into the page.
 def load_login(page: ft.Page):
-    page.title = "Login & Signup System"
+    page.title = "EventLink"
 
     # --- Build Login View ---
     login_username = ft.TextField(
@@ -102,7 +102,7 @@ def load_login(page: ft.Page):
     )
     signup_message = ft.Text("", color="red")
     signup_message.width = 500
-    signup_message_container = ft.Container(content=signup_message, margin=ft.margin.only(left=5))
+    signup_message_container = ft.Container(content=signup_message, margin=ft.margin.only(left=10))
     
     def signup(e):
         result = register_user(signup_username.value, signup_password.value)
@@ -142,7 +142,7 @@ def load_login(page: ft.Page):
     
     # --- Build Logo Container ---
     # Replace this Text with an Image widget if you have a logo file.
-    logo = ft.Text("EventLink 🎉", size=85, weight=ft.FontWeight.BOLD, color="blue")
+    logo = ft.Text("EventLink🎉", size=85, weight=ft.FontWeight.BOLD, color="blue")
     logo_container = ft.Container(
         content=logo,
         alignment=ft.alignment.center_right,
