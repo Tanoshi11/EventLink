@@ -1,13 +1,11 @@
 import flet as ft
 import httpx
 
-# For windowed fullscreen (maximized) window
 def main(page: ft.Page):
     page.window_full_screen = False
     page.window_maximized = True
     load_login(page)
 
-# This function builds the login/signup views and loads them into the page.
 def load_login(page: ft.Page):
     page.title = "EventLink"
 
@@ -34,7 +32,7 @@ def load_login(page: ft.Page):
             "password": login_password.value
         }
         try:
-            response = httpx.post("http://127.0.0.1:8000/login", json=user_data)
+            response = httpx.post("http://127.0.0.1:8000/login", json=user_data, timeout=10.0)
             response.raise_for_status()
             # If login is successful, switch to the homepage.
             import homepg
@@ -47,7 +45,6 @@ def load_login(page: ft.Page):
     login_button = ft.ElevatedButton("Login", on_click=login)
     login_button.width = 90
     login_button_container = ft.Container(content=login_button, margin=ft.margin.only(left=5))
-    # Placeholder; on_click will be set later
     signup_redirect = ft.TextButton("Don't have an account? Sign up here")
     
     login_view = ft.Column([
@@ -59,7 +56,6 @@ def load_login(page: ft.Page):
         signup_redirect
     ], alignment=ft.MainAxisAlignment.CENTER)
 
-    # The container expands to fill the page and aligns its content vertically centered and to the left.
     login_view_container = ft.Container(
         content=login_view,
         alignment=ft.alignment.center_left,
@@ -92,13 +88,13 @@ def load_login(page: ft.Page):
             "password": signup_password.value
         }
         try:
-            response = httpx.post("http://127.0.0.1:8000/register", json=user_data)
+            response = httpx.post("http://127.0.0.1:8000/register", json=user_data, timeout=10.0)
             response.raise_for_status()
             signup_message.value = "Signup Successful! Please log in."
             signup_message.color = "green"
             page.update()
             ft.dialog.alert("Signup Successful! Redirecting to login page...")
-            switch_view(login_view_container)  # Redirect to login view after signup
+            switch_view(login_view_container)
         except httpx.HTTPStatusError as exc:
             signup_message.value = exc.response.json()["detail"]
             signup_message.color = "red"
@@ -107,7 +103,6 @@ def load_login(page: ft.Page):
     signup_button = ft.ElevatedButton("Sign Up", on_click=signup)
     signup_button.width = 90
     signup_button_container = ft.Container(content=signup_button, margin=ft.margin.only(left=5))
-    # Placeholder; on_click will be set later
     login_redirect_signup = ft.TextButton("Already have an account? Log in here")
     
     signup_view = ft.Column([
@@ -148,7 +143,6 @@ def load_login(page: ft.Page):
         page.add(row)
         page.update()
     
-    # Set the on_click handlers for switching views in the text buttons.
     signup_redirect.on_click = lambda e: switch_view(signup_view_container)
     login_redirect_signup.on_click = lambda e: switch_view(login_view_container)
     
