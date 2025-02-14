@@ -5,9 +5,7 @@ def show_alert(page, title, content):
     dialog = ft.AlertDialog(
         title=ft.Text(title),
         content=ft.Text(content),
-        actions=[
-            ft.TextButton("OK", on_click=lambda e: close_dialog(page))
-        ]
+        actions=[ft.TextButton("OK", on_click=lambda e: close_dialog(page))]
     )
     page.dialog = dialog
     page.dialog.open = True
@@ -104,6 +102,23 @@ def load_login(page: ft.Page):
     signup_message_container = ft.Container(content=signup_message, margin=ft.margin.only(left=10))
     
     def signup(e):
+        # Local validation for empty fields.
+        if not signup_username.value.strip() and not signup_password.value.strip():
+            signup_message.value = "Username and Password are required!"
+            signup_message.color = "red"
+            page.update()
+            return
+        elif not signup_username.value.strip():
+            signup_message.value = "Username is required!"
+            signup_message.color = "red"
+            page.update()
+            return
+        elif not signup_password.value.strip():
+            signup_message.value = "Password is required!"
+            signup_message.color = "red"
+            page.update()
+            return
+
         user_data = {
             "username": signup_username.value,
             "password": signup_password.value
@@ -115,7 +130,7 @@ def load_login(page: ft.Page):
             signup_message.color = "green"
             page.update()
             show_alert(page, "Signup Successful!", "Redirecting to login page...")
-            switch_view(login_view_container)
+            switch_view(login_view_container)  # Redirect to login view after signup
         except httpx.HTTPStatusError as exc:
             signup_message.value = exc.response.json()["detail"]
             signup_message.color = "red"
