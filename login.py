@@ -1,6 +1,22 @@
 import flet as ft
 import httpx
 
+def show_alert(page, title, content):
+    dialog = ft.AlertDialog(
+        title=ft.Text(title),
+        content=ft.Text(content),
+        actions=[
+            ft.TextButton("OK", on_click=lambda e: close_dialog(page))
+        ]
+    )
+    page.dialog = dialog
+    page.dialog.open = True
+    page.update()
+
+def close_dialog(page):
+    page.dialog.open = False
+    page.update()
+
 def main(page: ft.Page):
     page.window_full_screen = False
     page.window_maximized = True
@@ -34,14 +50,19 @@ def load_login(page: ft.Page):
         try:
             response = httpx.post("http://127.0.0.1:8000/login", json=user_data, timeout=10.0)
             response.raise_for_status()
-            # If login is successful, switch to the homepage.
+            # On successful login, store the username for later use.
+            page.data = {"username": login_username.value}
             import homepg
             homepg.main(page)
+        except httpx.ConnectError:
+            login_message.value = "Connection error: FastAPI server not available."
+            login_message.color = "red"
+            page.update()
         except httpx.HTTPStatusError as exc:
             login_message.value = f"Login failed: {exc.response.json()['detail']}"
             login_message.color = "red"
             page.update()
-
+    
     login_button = ft.ElevatedButton("Login", on_click=login)
     login_button.width = 90
     login_button_container = ft.Container(content=login_button, margin=ft.margin.only(left=5))
@@ -55,7 +76,7 @@ def load_login(page: ft.Page):
         login_message_container,
         signup_redirect
     ], alignment=ft.MainAxisAlignment.CENTER)
-
+    
     login_view_container = ft.Container(
         content=login_view,
         alignment=ft.alignment.center_left,
@@ -93,13 +114,13 @@ def load_login(page: ft.Page):
             signup_message.value = "Signup Successful! Please log in."
             signup_message.color = "green"
             page.update()
-            ft.dialog.alert("Signup Successful! Redirecting to login page...")
+            show_alert(page, "Signup Successful!", "Redirecting to login page...")
             switch_view(login_view_container)
         except httpx.HTTPStatusError as exc:
             signup_message.value = exc.response.json()["detail"]
             signup_message.color = "red"
         page.update()
-
+    
     signup_button = ft.ElevatedButton("Sign Up", on_click=signup)
     signup_button.width = 90
     signup_button_container = ft.Container(content=signup_button, margin=ft.margin.only(left=5))
@@ -113,7 +134,7 @@ def load_login(page: ft.Page):
         signup_message_container,
         login_redirect_signup
     ], alignment=ft.MainAxisAlignment.CENTER)
-
+    
     signup_view_container = ft.Container(
         content=signup_view,
         alignment=ft.alignment.center_left,
@@ -123,7 +144,6 @@ def load_login(page: ft.Page):
     )
     
     # --- Build Logo Container ---
-    # Replace this Text with an Image widget if you have a logo file.
     logo = ft.Text("EventLink🎉", size=85, weight=ft.FontWeight.BOLD, color="blue")
     logo_container = ft.Container(
         content=logo,
@@ -132,7 +152,6 @@ def load_login(page: ft.Page):
         margin=ft.margin.only(right=170, bottom=100)
     )
     
-    # --- Define a helper function to switch views.
     def switch_view(view_container):
         row = ft.Row(
             controls=[view_container, logo_container],
@@ -146,7 +165,6 @@ def load_login(page: ft.Page):
     signup_redirect.on_click = lambda e: switch_view(signup_view_container)
     login_redirect_signup.on_click = lambda e: switch_view(login_view_container)
     
-    # Start with the login view.
     switch_view(login_view_container)
 
 if __name__ == "__main__":
