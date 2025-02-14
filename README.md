@@ -6,6 +6,7 @@ To work, run this command for installation:
 
 If no "pip" installation, downlaod first Python and set as Interpreter.
 
-Make sure the FastAPI for the servers to work, on a different terminal run:
-    "uvicorn server:app --reload"
-And then run the main code seperately, on different terminal.
+Make sure the FastAPI for the servers to work, on the server.py do "Run Python File in Dedicated Terminal"
+   then input code: "uvicorn server:app --reload"
+
+Then running login.py should work.
