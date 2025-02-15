@@ -18,7 +18,10 @@ def close_dialog(page):
 def main(page: ft.Page):
     page.window_full_screen = False
     page.window_maximized = True
-    load_login(page)
+    page.theme_mode = "dark"  # Enable dark mode
+    
+    load_login(page)  # Ensure this function is defined
+    page.update()  # Apply the changes
 
 def load_login(page: ft.Page):
     page.title = "EventLink"
