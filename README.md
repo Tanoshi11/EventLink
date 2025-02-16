@@ -41,9 +41,11 @@ Create a virtual environment to manage dependencies:
 
 ```bash
 python3 -m venv eventlink
+```
 
 Activate the virtual environment:
 
+```bash
 source env/bin/activate
 ```
 
