@@ -75,7 +75,7 @@ In another terminal window or tab (with the virtual environment activated), navi
 python3 login.py
 ```
 
-This will launch the login page of your application.
+This will launch the login page of the application.
 
 ## 7. Additional Notes
 
