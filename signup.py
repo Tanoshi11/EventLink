@@ -38,14 +38,20 @@ def load_signup(page: ft.Page):
         content_padding=ft.padding.all(10)
     )
     signup_contact = ft.TextField(
-        label="Contact Number",
-        label_style=ft.TextStyle(color="white"),
-        text_style=ft.TextStyle(color="white"),
-        width=500,
-        border_color="white",
-        border_radius=10,
-        content_padding=ft.padding.all(10)
+    label="Contact Number",
+    label_style=ft.TextStyle(color="white"),
+    text_style=ft.TextStyle(color="white"),
+    width=500,
+    border_color="white",
+    border_radius=10,
+    content_padding=ft.padding.all(10),
+    input_filter=ft.InputFilter(
+        regex_string=r"\d",  # Allow only digits
+        allow=True
+        ),
+        max_length=11  # Limit input to 11 characters
     )
+
     signup_password = ft.TextField(
         label="Password",
         label_style=ft.TextStyle(color="white"),
@@ -90,8 +96,8 @@ def load_signup(page: ft.Page):
             contact_error.value = "Contact number is required!"
             signup_contact.border_color = "red"
             errors.append(contact_error.value)
-        elif not signup_contact.value.strip().isdigit():
-            contact_error.value = "Contact number must contain only digits. (Ex. 09XXXXXXXXX)"
+        elif len(signup_contact.value.strip()) != 11:
+            contact_error.value = "Contact number must be exactly 11 digits."
             signup_contact.border_color = "red"
             errors.append(contact_error.value)
         if not signup_password.value.strip():
