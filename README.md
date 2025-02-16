@@ -83,3 +83,24 @@ This will launch the login page of your application.
 - **Virtual Environment:** Always run `source env/bin/activate` in your terminal before executing project commands.
 - **Troubleshooting:** If you run into issues with Python or pip, verify that you have installed all required packages and are using the correct interpreter.
 - **Development Workflow:** Use your Ubuntu WSL terminal for all operations (cloning, environment setup, running the server, etc.) for consistency.
+
+---
+
+## Unit Testing
+
+This project includes a comprehensive unit test suite to verify the functionality of both your FastAPI endpoints and Flet UI components.
+
+### What’s Tested?
+- **FastAPI Endpoints:**  
+  - Login, registration, user retrieval (via `/get_user`), event listing, and checks for duplicate usernames/emails.
+- **Flet UI Functions:**  
+  - Homepage view, login view, and profile view (using a `FakePage` to simulate a Flet page).
+
+### How to Run the Tests
+
+1. **Activate Your Virtual Environment**  
+   Ensure your virtual environment is active. For example, in Ubuntu or WSL:
+   ```bash
+   source env/bin/activate
+   ```
+
