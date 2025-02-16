@@ -11,15 +11,9 @@ def main(page: ft.Page):
     
     # Function to show the profile (info) page using user_profile module.
     def show_profile_page(page: ft.Page):
-         import user_profile  # Make sure your file is renamed to user_profile.py
-         # Retrieve the username from page.data (set during login).
-         username = page.data.get("username", "N/A") if page.data else "N/A"
-         user_data = {
-              "name": username,
-              "email": f"{username}@example.com",  # Replace with real data if available.
-              "date_joined": datetime.now().strftime("%Y-%m-%d")
-         }
-         user_profile.show_profile(page, user_data)
+         import user_profile
+         # Now we call show_profile with ONLY the page argument (no user_data)
+         user_profile.show_profile(page)
     
     # Optionally fetch events from FastAPI.
     try:
