@@ -25,47 +25,30 @@ def main(page: ft.Page):
 def load_login(page: ft.Page):
     page.title = "EventLink"
 
-    # Helper functions to update label style on focus/blur
-    def on_focus(field):
-        def handler(e):
-            field.label_style = ft.TextStyle(color="white")
-            page.update()
-        return handler
-
-    def on_blur(field):
-        def handler(e):
-            field.label_style = ft.TextStyle(color="#80FFFFFF")  # 50% opacity white
-            page.update()
-        return handler
-
     # --------------------
     # Build Login View
     # --------------------
     login_identifier = ft.TextField(
         label="Username or Email",
-        label_style=ft.TextStyle(color="#80FFFFFF"),  # initial 50% opacity
+        label_style=ft.TextStyle(color="white"),  # label always white
+        text_style=ft.TextStyle(color="white"),   # typed text white
         width=500,
         border_color="white",
         border_radius=10,
         content_padding=ft.padding.all(10)
     )
-    # Set focus and blur callbacks after creation:
-    login_identifier.on_focus = on_focus(login_identifier)
-    login_identifier.on_blur = on_blur(login_identifier)
-
     login_identifier_error = ft.Text("", color="red", size=12)
 
     login_password = ft.TextField(
         label="Password",
-        label_style=ft.TextStyle(color="#80FFFFFF"),
+        label_style=ft.TextStyle(color="white"),
+        text_style=ft.TextStyle(color="white"),
         width=500,
         password=True,
         border_color="white",
         border_radius=10,
         content_padding=ft.padding.all(10)
     )
-    login_password.on_focus = on_focus(login_password)
-    login_password.on_blur = on_blur(login_password)
     login_password_error = ft.Text("", color="red", size=12)
 
     login_message = ft.Text("", color="red")
@@ -152,52 +135,48 @@ def load_login(page: ft.Page):
     )
     
     # --------------------
-    # Build Signup View (apply similar on_focus/on_blur)
+    # Build Signup View
     # --------------------
     signup_username = ft.TextField(
         label="Username",
-        label_style=ft.TextStyle(color="#80FFFFFF"),
+        label_style=ft.TextStyle(color="white"),
+        text_style=ft.TextStyle(color="white"),
         width=500,
         border_color="white",
         border_radius=10,
         content_padding=ft.padding.all(10)
     )
-    signup_username.on_focus = on_focus(signup_username)
-    signup_username.on_blur = on_blur(signup_username)
 
     signup_email = ft.TextField(
         label="Email",
-        label_style=ft.TextStyle(color="#80FFFFFF"),
+        label_style=ft.TextStyle(color="white"),
+        text_style=ft.TextStyle(color="white"),
         width=500,
         border_color="white",
         border_radius=10,
         content_padding=ft.padding.all(10)
     )
-    signup_email.on_focus = on_focus(signup_email)
-    signup_email.on_blur = on_blur(signup_email)
 
     signup_contact = ft.TextField(
         label="Contact Number",
-        label_style=ft.TextStyle(color="#80FFFFFF"),
+        label_style=ft.TextStyle(color="white"),
+        text_style=ft.TextStyle(color="white"),
         width=500,
         border_color="white",
         border_radius=10,
         content_padding=ft.padding.all(10)
     )
-    signup_contact.on_focus = on_focus(signup_contact)
-    signup_contact.on_blur = on_blur(signup_contact)
 
     signup_password = ft.TextField(
         label="Password",
-        label_style=ft.TextStyle(color="#80FFFFFF"),
+        label_style=ft.TextStyle(color="white"),
+        text_style=ft.TextStyle(color="white"),
         width=500,
         password=True,
         border_color="white",
         border_radius=10,
         content_padding=ft.padding.all(10)
     )
-    signup_password.on_focus = on_focus(signup_password)
-    signup_password.on_blur = on_blur(signup_password)
 
     username_error = ft.Text("", color="red", size=12)
     email_error = ft.Text("", color="red", size=12)
@@ -261,15 +240,32 @@ def load_login(page: ft.Page):
             switch_view(login_view_container)
         except httpx.HTTPStatusError as exc:
             error_detail = exc.response.json()["detail"]
-            if error_detail == "Username already exists":
-                username_error.value = error_detail
+            # Reset any prior messages
+            username_error.value = ""
+            email_error.value = ""
+            signup_message_container.content = None
+            
+            # If the error says BOTH are taken:
+            if "Username and Email" in error_detail:
+                username_error.value = "Username already exists"
                 signup_username.border_color = "red"
-            elif error_detail == "Email already exists":
-                email_error.value = error_detail
+                email_error.value = "Email already exists"
                 signup_email.border_color = "red"
             else:
+                # Check partial matches:
+                if "Username" in error_detail:
+                    username_error.value = "Username already exists"
+                    signup_username.border_color = "red"
+                if "Email" in error_detail:
+                    email_error.value = "Email already exists"
+                    signup_email.border_color = "red"
+
+            # If there's any other error detail, show it in a general container:
+            if not ("Username" in error_detail or "Email" in error_detail):
                 signup_message_container.content = ft.Text(error_detail, color="red")
+
             page.update()
+
     
     signup_button = ft.ElevatedButton(
         "Sign Up",
@@ -285,6 +281,7 @@ def load_login(page: ft.Page):
             style=ft.TextStyle(decoration=ft.TextDecoration.UNDERLINE)
         )
     )
+    signup_to_login.on_click = lambda e: switch_view(login_view_container)
     
     signup_view = ft.Column(
         controls=[
@@ -332,7 +329,6 @@ def load_login(page: ft.Page):
         page.update()
     
     login_to_signup.on_click = lambda e: switch_view(signup_view_container)
-    # (If you have a "signup_to_login" button in the signup view, assign its on_click accordingly.)
     
     switch_view(login_view_container)
 

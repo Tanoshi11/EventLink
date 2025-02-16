@@ -37,10 +37,18 @@ def login(user: UserLogin):
 
 @app.post("/register")
 def register(user: UserRegister):
-    if users_collection.find_one({"username": user.username}):
+    username_exists = users_collection.find_one({"username": user.username})
+    email_exists = users_collection.find_one({"email": user.email})
+
+    # Check if BOTH are taken
+    if username_exists and email_exists:
+        raise HTTPException(status_code=400, detail="Username and Email already exist")
+    elif username_exists:
         raise HTTPException(status_code=400, detail="Username already exists")
-    if users_collection.find_one({"email": user.email}):
+    elif email_exists:
         raise HTTPException(status_code=400, detail="Email already exists")
+
+    # If neither is taken, proceed with inserting the user
     hashed_password = bcrypt.hashpw(user.password.encode(), bcrypt.gensalt())
     users_collection.insert_one({
         "username": user.username,
@@ -49,6 +57,7 @@ def register(user: UserRegister):
         "password": hashed_password.decode()
     })
     return {"message": "Registration successful"}
+
 
 @app.get("/check-username")
 def check_username(username: str):
