@@ -40,14 +40,14 @@ Replace <YOUR_GITHUB_REPO_URL> with the actual URL of your repository, and <repo
 Create a virtual environment to manage dependencies:
 
 ```bash
-python3 -m venv env
+python3 -m venv eventlink
 
 Activate the virtual environment:
 
 source env/bin/activate
 ```
 
-Your prompt should now display (env) indicating the virtual environment is active.
+Your prompt should now display (eventlink) indicating the virtual environment is active.
 
 ## 4. Install Project Dependencies
 
