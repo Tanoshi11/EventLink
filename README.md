@@ -100,7 +100,29 @@ This project includes a comprehensive unit test suite to verify the functionalit
 
 1. **Activate Your Virtual Environment**  
    Ensure your virtual environment is active. For example, in Ubuntu or WSL:
+   
    ```bash
    source env/bin/activate
    ```
+   
+2. **Install Dependencies**
+   
+Make sure all required packages are installed. You can install them via:
 
+```bash
+pip install -r requirements.txt
+```
+(If you don’t have a requirements.txt, ensure packages like fastapi, uvicorn, pymongo, bcrypt, httpx, and flet are installed.)
+
+3. **Run the Test Suite**
+From the project’s root directory, run:
+
+```bash
+python test_app.py
+```
+
+This command will execute all tests. The output will indicate which tests passed, failed, or were skipped.
+
+4. Review the Results
+5. 
+Check your terminal for test results. If any tests fail, review the error messages to troubleshoot and fix issues.
