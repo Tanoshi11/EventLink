@@ -102,7 +102,7 @@ This project includes a comprehensive unit test suite to verify the functionalit
    Ensure your virtual environment is active. For example, in Ubuntu or WSL:
    
    ```bash
-   source env/bin/activate
+   source eventlink/bin/activate
    ```
    
 2. **Install Dependencies**
