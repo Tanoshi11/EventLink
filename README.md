@@ -123,6 +123,6 @@ This project includes a comprehensive unit test suite to verify the functionalit
     
     This command will execute all tests. The output will indicate which tests passed, failed, or were skipped.
 
-4. Review the Results
+4. **Review the Results**
  
    Check your terminal for test results. If any tests fail, review the error messages to troubleshoot and fix issues.
