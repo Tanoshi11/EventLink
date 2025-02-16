@@ -38,7 +38,6 @@ def login(user: UserLogin):
 
 @app.post("/register")
 def register(user: UserRegister):
-    # Example checks for existing username/email
     username_exists = users_collection.find_one({"username": user.username})
     email_exists = users_collection.find_one({"email": user.email})
 
@@ -50,13 +49,12 @@ def register(user: UserRegister):
         raise HTTPException(status_code=400, detail="Email already exists")
 
     hashed_password = bcrypt.hashpw(user.password.encode(), bcrypt.gensalt())
-    # Insert with optional date_joined field:
     users_collection.insert_one({
         "username": user.username,
         "email": user.email,
         "contact": user.contact,
         "password": hashed_password.decode(),
-        "date_joined": datetime.now().strftime("%Y-%m-%d")
+        "date_joined": datetime.now().strftime("%Y-%m-%d")  # Only the date
     })
     return {"message": "Registration successful"}
 

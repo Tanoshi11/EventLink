@@ -310,12 +310,17 @@ def load_login(page: ft.Page):
     # --------------------
     # Build Logo Container
     # --------------------
-    logo = ft.Text("EventLink🎉", size=85, weight=ft.FontWeight.BOLD, color="blue")
+    logo_image = ft.Image(
+    src="exlogo.png",  # Ensure this file is in your project directory or provide the correct path. SAMPLE LOGO!
+    width=300,        # Adjust width as needed
+    height=300,       # Adjust height as needed
+    fit=ft.ImageFit.CONTAIN
+)
     logo_container = ft.Container(
-        content=logo,
+        content=logo_image,
         alignment=ft.alignment.center_right,
         expand=True,
-        margin=ft.margin.only(right=170, bottom=100)
+        margin=ft.margin.only(right=250, bottom=100)
     )
     
     def switch_view(view_container):
