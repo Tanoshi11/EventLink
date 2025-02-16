@@ -25,26 +25,47 @@ def main(page: ft.Page):
 def load_login(page: ft.Page):
     page.title = "EventLink"
 
+    # Helper functions to update label style on focus/blur
+    def on_focus(field):
+        def handler(e):
+            field.label_style = ft.TextStyle(color="white")
+            page.update()
+        return handler
+
+    def on_blur(field):
+        def handler(e):
+            field.label_style = ft.TextStyle(color="#80FFFFFF")  # 50% opacity white
+            page.update()
+        return handler
+
     # --------------------
     # Build Login View
     # --------------------
     login_identifier = ft.TextField(
         label="Username or Email",
+        label_style=ft.TextStyle(color="#80FFFFFF"),  # initial 50% opacity
         width=500,
         border_color="white",
         border_radius=10,
         content_padding=ft.padding.all(10)
     )
+    # Set focus and blur callbacks after creation:
+    login_identifier.on_focus = on_focus(login_identifier)
+    login_identifier.on_blur = on_blur(login_identifier)
+
     login_identifier_error = ft.Text("", color="red", size=12)
 
     login_password = ft.TextField(
         label="Password",
+        label_style=ft.TextStyle(color="#80FFFFFF"),
         width=500,
         password=True,
         border_color="white",
         border_radius=10,
         content_padding=ft.padding.all(10)
     )
+    login_password.on_focus = on_focus(login_password)
+    login_password.on_blur = on_blur(login_password)
     login_password_error = ft.Text("", color="red", size=12)
 
     login_message = ft.Text("", color="red")
@@ -91,14 +112,29 @@ def load_login(page: ft.Page):
             login_message.color = "red"
             page.update()
     
-    login_button = ft.ElevatedButton("Login", on_click=login)
+    login_button = ft.ElevatedButton(
+        "Login",
+        on_click=login,
+        style=ft.ButtonStyle(
+            side=ft.BorderSide(color="white", width=0.5)
+        )
+    )
     login_button.width = 100
-    login_to_signup = ft.TextButton("Don't have an account? Sign up here")
-    
+    login_button.color = "white"
+    login_to_signup = ft.TextButton(
+        content=ft.Text(
+            "Don't have an account? Sign up here",
+            color="white",
+            style=ft.TextStyle(decoration=ft.TextDecoration.UNDERLINE)
+        )
+    )
+
     login_view = ft.Column(
         controls=[
-            ft.Container(content=ft.Text("Login", size=24, weight=ft.FontWeight.BOLD, color="white"),
-                         margin=ft.margin.only(bottom=10)),
+            ft.Container(
+                content=ft.Text("Login", size=24, weight=ft.FontWeight.BOLD, color="white"),
+                margin=ft.margin.only(bottom=10)
+            ),
             ft.Column(controls=[login_identifier, login_identifier_error], spacing=2),
             ft.Column(controls=[login_password, login_password_error], spacing=2),
             login_button,
@@ -116,48 +152,61 @@ def load_login(page: ft.Page):
     )
     
     # --------------------
-    # Build Signup View
+    # Build Signup View (apply similar on_focus/on_blur)
     # --------------------
     signup_username = ft.TextField(
         label="Username",
+        label_style=ft.TextStyle(color="#80FFFFFF"),
         width=500,
         border_color="white",
         border_radius=10,
         content_padding=ft.padding.all(10)
     )
+    signup_username.on_focus = on_focus(signup_username)
+    signup_username.on_blur = on_blur(signup_username)
+
     signup_email = ft.TextField(
         label="Email",
+        label_style=ft.TextStyle(color="#80FFFFFF"),
         width=500,
         border_color="white",
         border_radius=10,
         content_padding=ft.padding.all(10)
     )
+    signup_email.on_focus = on_focus(signup_email)
+    signup_email.on_blur = on_blur(signup_email)
+
     signup_contact = ft.TextField(
         label="Contact Number",
+        label_style=ft.TextStyle(color="#80FFFFFF"),
         width=500,
         border_color="white",
         border_radius=10,
         content_padding=ft.padding.all(10)
     )
+    signup_contact.on_focus = on_focus(signup_contact)
+    signup_contact.on_blur = on_blur(signup_contact)
+
     signup_password = ft.TextField(
         label="Password",
+        label_style=ft.TextStyle(color="#80FFFFFF"),
         width=500,
         password=True,
         border_color="white",
         border_radius=10,
         content_padding=ft.padding.all(10)
     )
-    # Create individual error labels for each signup field
+    signup_password.on_focus = on_focus(signup_password)
+    signup_password.on_blur = on_blur(signup_password)
+
     username_error = ft.Text("", color="red", size=12)
     email_error = ft.Text("", color="red", size=12)
     contact_error = ft.Text("", color="red", size=12)
     password_error = ft.Text("", color="red", size=12)
     
-    # A container for a general signup message (if needed)
     signup_message_container = ft.Container(margin=ft.margin.only(top=5))
     
     def signup(e):
-        # Reset error labels and border colors for signup
         username_error.value = ""
         email_error.value = ""
         contact_error.value = ""
@@ -222,14 +271,27 @@ def load_login(page: ft.Page):
                 signup_message_container.content = ft.Text(error_detail, color="red")
             page.update()
     
-    signup_button = ft.ElevatedButton("Sign Up", on_click=signup)
+    signup_button = ft.ElevatedButton(
+        "Sign Up",
+        on_click=signup,
+        style=ft.ButtonStyle(side=ft.BorderSide(color="white", width=0.5)),
+        color="white"
+    )
     signup_button.width = 100
-    signup_to_login = ft.TextButton("Already have an account? Log in here")
+    signup_to_login = ft.TextButton(
+        content=ft.Text(
+            "Already have an account? Log in here",
+            color="white",
+            style=ft.TextStyle(decoration=ft.TextDecoration.UNDERLINE)
+        )
+    )
     
     signup_view = ft.Column(
         controls=[
-            ft.Container(content=ft.Text("Sign Up", size=24, weight=ft.FontWeight.BOLD, color="white"),
-                         margin=ft.margin.only(bottom=10)),
+            ft.Container(
+                content=ft.Text("Sign Up", size=24, weight=ft.FontWeight.BOLD, color="white"),
+                margin=ft.margin.only(bottom=10)
+            ),
             ft.Column(controls=[signup_username, username_error], spacing=2),
             ft.Column(controls=[signup_email, email_error], spacing=2),
             ft.Column(controls=[signup_contact, contact_error], spacing=2),
@@ -270,7 +332,7 @@ def load_login(page: ft.Page):
         page.update()
     
     login_to_signup.on_click = lambda e: switch_view(signup_view_container)
-    signup_to_login.on_click = lambda e: switch_view(login_view_container)
+    # (If you have a "signup_to_login" button in the signup view, assign its on_click accordingly.)
     
     switch_view(login_view_container)
 
