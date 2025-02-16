@@ -1,5 +1,6 @@
 import flet as ft
 import httpx
+import re  # For email validation
 
 def show_alert(page, title, content):
     dialog = ft.AlertDialog(
@@ -18,41 +19,67 @@ def close_dialog(page):
 def main(page: ft.Page):
     page.window_full_screen = False
     page.window_maximized = True
-    page.theme_mode = "dark"  # Enable dark mode
-    
-    load_login(page)  # Ensure this function is defined
-    page.update()  # Apply the changes
+    page.theme_mode = ft.ThemeMode.DARK  # Start in dark mode
+    load_login(page)
 
 def load_login(page: ft.Page):
     page.title = "EventLink"
 
-    # --- Build Login View ---
-    login_username = ft.TextField(
-        label="Username",
+    # --------------------
+    # Build Login View
+    # --------------------
+    login_identifier = ft.TextField(
+        label="Username or Email",
         width=500,
-        content_padding=ft.padding.only(left=20, top=8, bottom=8, right=8),
-        border_color="white"
+        border_color="white",
+        border_radius=10,
+        content_padding=ft.padding.all(10)
     )
+    login_identifier_error = ft.Text("", color="red", size=12)
+
     login_password = ft.TextField(
         label="Password",
         width=500,
         password=True,
-        content_padding=ft.padding.only(left=20, top=8, bottom=8, right=8),
-        border_color="white"
+        border_color="white",
+        border_radius=10,
+        content_padding=ft.padding.all(10)
     )
+    login_password_error = ft.Text("", color="red", size=12)
+
     login_message = ft.Text("", color="red")
-    login_message_container = ft.Container(content=login_message, margin=ft.margin.only(left=10))
+    login_message_container = ft.Container(content=login_message, margin=ft.margin.only(top=5))
     
     def login(e):
+        # Reset border colors and error labels
+        login_identifier.border_color = "white"
+        login_password.border_color = "white"
+        login_identifier_error.value = ""
+        login_password_error.value = ""
+        login_message.value = ""
+        
+        errors = False
+        if not login_identifier.value.strip():
+            login_identifier_error.value = "Username or Email is required!"
+            login_identifier.border_color = "red"
+            errors = True
+        if not login_password.value.strip():
+            login_password_error.value = "Password is required!"
+            login_password.border_color = "red"
+            errors = True
+        
+        if errors:
+            page.update()
+            return
+
         user_data = {
-            "username": login_username.value,
+            "identifier": login_identifier.value,
             "password": login_password.value
         }
         try:
             response = httpx.post("http://127.0.0.1:8000/login", json=user_data, timeout=10.0)
             response.raise_for_status()
-            # On successful login, store the username for later use.
-            page.data = {"username": login_username.value}
+            page.data = {"username": login_identifier.value}
             import homepg
             homepg.main(page)
         except httpx.ConnectError:
@@ -65,103 +92,165 @@ def load_login(page: ft.Page):
             page.update()
     
     login_button = ft.ElevatedButton("Login", on_click=login)
-    login_button.width = 90
-    login_button_container = ft.Container(content=login_button, margin=ft.margin.only(left=5))
-    signup_redirect = ft.TextButton("Don't have an account? Sign up here")
+    login_button.width = 100
+    login_to_signup = ft.TextButton("Don't have an account? Sign up here")
     
-    login_view = ft.Column([
-        ft.Text("Login", size=20, weight=ft.FontWeight.BOLD),
-        login_username,
-        login_password,
-        login_button_container,
-        login_message_container,
-        signup_redirect
-    ], alignment=ft.MainAxisAlignment.CENTER)
-    
+    login_view = ft.Column(
+        controls=[
+            ft.Container(content=ft.Text("Login", size=24, weight=ft.FontWeight.BOLD, color="white"),
+                         margin=ft.margin.only(bottom=10)),
+            ft.Column(controls=[login_identifier, login_identifier_error], spacing=2),
+            ft.Column(controls=[login_password, login_password_error], spacing=2),
+            login_button,
+            login_message_container,
+            login_to_signup
+        ],
+        spacing=10,
+        alignment=ft.MainAxisAlignment.CENTER
+    )
     login_view_container = ft.Container(
         content=login_view,
         alignment=ft.alignment.center_left,
-        expand=False,
-        width=520,
+        width=550,
         margin=ft.margin.only(left=150)
     )
     
-    # --- Build Signup View ---
+    # --------------------
+    # Build Signup View
+    # --------------------
     signup_username = ft.TextField(
         label="Username",
         width=500,
-        content_padding=ft.padding.only(left=20, top=8, bottom=8, right=8),
-        border_color="white"
+        border_color="white",
+        border_radius=10,
+        content_padding=ft.padding.all(10)
+    )
+    signup_email = ft.TextField(
+        label="Email",
+        width=500,
+        border_color="white",
+        border_radius=10,
+        content_padding=ft.padding.all(10)
+    )
+    signup_contact = ft.TextField(
+        label="Contact Number",
+        width=500,
+        border_color="white",
+        border_radius=10,
+        content_padding=ft.padding.all(10)
     )
     signup_password = ft.TextField(
         label="Password",
         width=500,
         password=True,
-        content_padding=ft.padding.only(left=20, top=8, bottom=8, right=8),
-        border_color="white"
+        border_color="white",
+        border_radius=10,
+        content_padding=ft.padding.all(10)
     )
-    signup_message = ft.Text("", color="red")
-    signup_message.width = 500
-    signup_message_container = ft.Container(content=signup_message, margin=ft.margin.only(left=10))
+    # Create individual error labels for each signup field
+    username_error = ft.Text("", color="red", size=12)
+    email_error = ft.Text("", color="red", size=12)
+    contact_error = ft.Text("", color="red", size=12)
+    password_error = ft.Text("", color="red", size=12)
+    
+    # A container for a general signup message (if needed)
+    signup_message_container = ft.Container(margin=ft.margin.only(top=5))
     
     def signup(e):
-        # Local validation for empty fields.
-        if not signup_username.value.strip() and not signup_password.value.strip():
-            signup_message.value = "Username and Password are required!"
-            signup_message.color = "red"
-            page.update()
-            return
-        elif not signup_username.value.strip():
-            signup_message.value = "Username is required!"
-            signup_message.color = "red"
-            page.update()
-            return
-        elif not signup_password.value.strip():
-            signup_message.value = "Password is required!"
-            signup_message.color = "red"
+        # Reset error labels and border colors for signup
+        username_error.value = ""
+        email_error.value = ""
+        contact_error.value = ""
+        password_error.value = ""
+        signup_username.border_color = "white"
+        signup_email.border_color = "white"
+        signup_contact.border_color = "white"
+        signup_password.border_color = "white"
+        
+        errors = []
+        if not signup_username.value.strip():
+            username_error.value = "Username is required!"
+            signup_username.border_color = "red"
+            errors.append(username_error.value)
+        if not signup_email.value.strip():
+            email_error.value = "Email is required!"
+            signup_email.border_color = "red"
+            errors.append(email_error.value)
+        elif not re.match(r"[^@]+@[^@]+\.[^@]+", signup_email.value.strip()):
+            email_error.value = "Invalid email format. Use user@example.com."
+            signup_email.border_color = "red"
+            errors.append(email_error.value)
+        if not signup_contact.value.strip():
+            contact_error.value = "Contact number is required!"
+            signup_contact.border_color = "red"
+            errors.append(contact_error.value)
+        elif not signup_contact.value.strip().isdigit():
+            contact_error.value = "Contact number must contain only digits. (Ex. 09XXXXXXXXX)"
+            signup_contact.border_color = "red"
+            errors.append(contact_error.value)
+        if not signup_password.value.strip():
+            password_error.value = "Password is required!"
+            signup_password.border_color = "red"
+            errors.append(password_error.value)
+        
+        if errors:
             page.update()
             return
 
         user_data = {
             "username": signup_username.value,
+            "email": signup_email.value,
+            "contact": signup_contact.value,
             "password": signup_password.value
         }
         try:
             response = httpx.post("http://127.0.0.1:8000/register", json=user_data, timeout=10.0)
             response.raise_for_status()
-            signup_message.value = "Signup Successful! Please log in."
-            signup_message.color = "green"
+            signup_message_container.content = ft.Text("Signup Successful! Please log in.", color="green")
             page.update()
             show_alert(page, "Signup Successful!", "Redirecting to login page...")
-            switch_view(login_view_container)  # Redirect to login view after signup
+            switch_view(login_view_container)
         except httpx.HTTPStatusError as exc:
-            signup_message.value = exc.response.json()["detail"]
-            signup_message.color = "red"
-        page.update()
+            error_detail = exc.response.json()["detail"]
+            if error_detail == "Username already exists":
+                username_error.value = error_detail
+                signup_username.border_color = "red"
+            elif error_detail == "Email already exists":
+                email_error.value = error_detail
+                signup_email.border_color = "red"
+            else:
+                signup_message_container.content = ft.Text(error_detail, color="red")
+            page.update()
     
     signup_button = ft.ElevatedButton("Sign Up", on_click=signup)
-    signup_button.width = 90
-    signup_button_container = ft.Container(content=signup_button, margin=ft.margin.only(left=5))
-    login_redirect_signup = ft.TextButton("Already have an account? Log in here")
+    signup_button.width = 100
+    signup_to_login = ft.TextButton("Already have an account? Log in here")
     
-    signup_view = ft.Column([
-        ft.Text("Sign Up", size=20, weight=ft.FontWeight.BOLD),
-        signup_username,
-        signup_password,
-        signup_button_container,
-        signup_message_container,
-        login_redirect_signup
-    ], alignment=ft.MainAxisAlignment.CENTER)
-    
+    signup_view = ft.Column(
+        controls=[
+            ft.Container(content=ft.Text("Sign Up", size=24, weight=ft.FontWeight.BOLD, color="white"),
+                         margin=ft.margin.only(bottom=10)),
+            ft.Column(controls=[signup_username, username_error], spacing=2),
+            ft.Column(controls=[signup_email, email_error], spacing=2),
+            ft.Column(controls=[signup_contact, contact_error], spacing=2),
+            ft.Column(controls=[signup_password, password_error], spacing=2),
+            signup_button,
+            signup_message_container,
+            signup_to_login
+        ],
+        spacing=10,
+        alignment=ft.MainAxisAlignment.CENTER
+    )
     signup_view_container = ft.Container(
         content=signup_view,
         alignment=ft.alignment.center_left,
-        expand=False,
-        width=520,
+        width=550,
         margin=ft.margin.only(left=150)
     )
     
-    # --- Build Logo Container ---
+    # --------------------
+    # Build Logo Container
+    # --------------------
     logo = ft.Text("EventLink🎉", size=85, weight=ft.FontWeight.BOLD, color="blue")
     logo_container = ft.Container(
         content=logo,
@@ -180,8 +269,8 @@ def load_login(page: ft.Page):
         page.add(row)
         page.update()
     
-    signup_redirect.on_click = lambda e: switch_view(signup_view_container)
-    login_redirect_signup.on_click = lambda e: switch_view(login_view_container)
+    login_to_signup.on_click = lambda e: switch_view(signup_view_container)
+    signup_to_login.on_click = lambda e: switch_view(login_view_container)
     
     switch_view(login_view_container)
 
