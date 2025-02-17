@@ -18,50 +18,55 @@ def close_dialog(page):
 
 def load_signup(page: ft.Page):
     page.title = "EventLink - Sign Up"
-
+    page.bgcolor = "#0C3B2E"  
+    
+    # --------------------
+    # Build Sign Up Form Fields
+    # --------------------
     signup_username = ft.TextField(
         label="Username",
-        label_style=ft.TextStyle(color="white"),
+        label_style=ft.TextStyle(color="#FFBA00"),
         text_style=ft.TextStyle(color="white"),
         width=500,
-        border_color="white",
+        border_color="#FFBA00",
         border_radius=10,
         content_padding=ft.padding.all(10)
     )
     signup_email = ft.TextField(
         label="Email",
-        label_style=ft.TextStyle(color="white"),
+        label_style=ft.TextStyle(color="#FFBA00"),
         text_style=ft.TextStyle(color="white"),
         width=500,
-        border_color="white",
+        border_color="#FFBA00",
         border_radius=10,
         content_padding=ft.padding.all(10)
     )
     signup_contact = ft.TextField(
-    label="Contact Number",
-    label_style=ft.TextStyle(color="white"),
-    text_style=ft.TextStyle(color="white"),
-    width=500,
-    border_color="white",
-    border_radius=10,
-    content_padding=ft.padding.all(10),
-    input_filter=ft.InputFilter(
-        regex_string=r"\d",  # Allow only digits
-        allow=True
+        label="Contact Number",
+        label_style=ft.TextStyle(color="#FFBA00"),
+        text_style=ft.TextStyle(color="white"),
+        width=500,
+        border_color="#FFBA00",
+        border_radius=10,
+        content_padding=ft.padding.all(10),
+        input_filter=ft.InputFilter(
+            regex_string=r"\d",  # Allow only digits
+            allow=True
         ),
         max_length=11  # Limit input to 11 characters
     )
-
     signup_password = ft.TextField(
         label="Password",
-        label_style=ft.TextStyle(color="white"),
+        label_style=ft.TextStyle(color="#FFBA00"),
         text_style=ft.TextStyle(color="white"),
         width=500,
         password=True,
-        border_color="white",
+        border_color="#FFBA00",
         border_radius=10,
         content_padding=ft.padding.all(10)
     )
+    
+    # Error messages for each field
     username_error = ft.Text("", color="red", size=12)
     email_error = ft.Text("", color="red", size=12)
     contact_error = ft.Text("", color="red", size=12)
@@ -70,14 +75,15 @@ def load_signup(page: ft.Page):
     signup_message_container = ft.Container(margin=ft.margin.only(top=5))
     
     def signup(e):
+        # Reset errors and borders
         username_error.value = ""
         email_error.value = ""
         contact_error.value = ""
         password_error.value = ""
-        signup_username.border_color = "white"
-        signup_email.border_color = "white"
-        signup_contact.border_color = "white"
-        signup_password.border_color = "white"
+        signup_username.border_color = "#FFBA00"
+        signup_email.border_color = "#FFBA00"
+        signup_contact.border_color = "#FFBA00"
+        signup_password.border_color = "#FFBA00"
         
         errors = []
         if not signup_username.value.strip():
@@ -147,14 +153,18 @@ def load_signup(page: ft.Page):
     signup_button = ft.ElevatedButton(
         "Sign Up",
         on_click=signup,
-        style=ft.ButtonStyle(side=ft.BorderSide(color="white", width=0.5)),
-        color="white"
+        bgcolor="#B46617",   # Button background
+        color="white",       # Button text color
+        style=ft.ButtonStyle(
+            shape=ft.RoundedRectangleBorder(radius=10)
+        )
     )
     signup_button.width = 100
+    
     signup_to_login = ft.TextButton(
         content=ft.Text(
             "Already have an account? Log in here",
-            color="white",
+            color="#FFBA00",  # Accent color for links
             style=ft.TextStyle(decoration=ft.TextDecoration.UNDERLINE)
         )
     )
@@ -162,8 +172,10 @@ def load_signup(page: ft.Page):
     
     signup_view = ft.Column(
         controls=[
-            ft.Container(content=ft.Text("Sign Up", size=24, weight=ft.FontWeight.BOLD, color="white"),
-                         margin=ft.margin.only(bottom=10)),
+            ft.Container(
+                content=ft.Text("Sign Up", size=24, weight=ft.FontWeight.BOLD, color="#FFBA00"),
+                margin=ft.margin.only(bottom=10)
+            ),
             ft.Column(controls=[signup_username, username_error], spacing=2),
             ft.Column(controls=[signup_email, email_error], spacing=2),
             ft.Column(controls=[signup_contact, contact_error], spacing=2),
@@ -179,12 +191,17 @@ def load_signup(page: ft.Page):
         content=signup_view,
         alignment=ft.alignment.center_left,
         width=550,
-        margin=ft.margin.only(left=150)
+        margin=ft.margin.only(left=150, top=50),
+        bgcolor="#6D9773",   # Form container background
+        border_radius=20,
+        padding=ft.padding.all(20)
     )
     
-    # Build Logo Container (same as in login.py)
+    # --------------------
+    # Build Logo Container (similar to login page)
+    # --------------------
     logo_image = ft.Image(
-        src="exlogo.png",  # Sample logo image
+        src="exlogo.png",  # Ensure your logo file is in the project directory.
         width=300,
         height=300,
         fit=ft.ImageFit.CONTAIN
@@ -203,6 +220,9 @@ def load_signup(page: ft.Page):
         elif view == "signup":
             load_signup(page)
     
+    # --------------------
+    # Arrange the Sign Up Form and Logo
+    # --------------------
     page.controls.clear()
     row = ft.Row(
         controls=[signup_view_container, logo_container],
