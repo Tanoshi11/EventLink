@@ -14,8 +14,9 @@ def main(page: ft.Page):
          import user_profile
          user_profile.show_profile(page)
     
+    
     logo_image = ft.Image(
-        src="logo1.png",  # Ensure this image file is in your project directory
+        src="logo1.png",  
         width=200,
         height=80,
         fit=ft.ImageFit.CONTAIN 
@@ -30,7 +31,7 @@ def main(page: ft.Page):
     except Exception as ex:
         event_widgets = [ft.Text("Failed to fetch events", color="red")]
 
-    # Header 
+    # Header (Navigation Bar)
     header = ft.Container(
         content=ft.Row([
             ft.Container(width=15),
@@ -42,7 +43,7 @@ def main(page: ft.Page):
                 suffix=ft.IconButton(
                     icon=ft.Icons.SEARCH,
                     on_click=lambda e: print("Search clicked"),
-                    icon_color="#FFBA00",  # Yellow accent color
+                    icon_color="#FFBA00",  
                     icon_size=30
                 ),
                 border_color="white",
@@ -56,7 +57,7 @@ def main(page: ft.Page):
                 on_click=lambda e: print("Event clicked"),
                 icon_color="#FFBA00",
                 icon_size=40,
-                bgcolor="#B46617"  # Burnt orange
+                bgcolor="#B46617"  
             ),
             ft.PopupMenuButton(
                 icon=ft.Icons.PERSON,
@@ -76,19 +77,21 @@ def main(page: ft.Page):
             )
         ]),
         bgcolor="#2C6D4F", 
-        padding=5
+        padding=5,
+        expand=False  
     )
 
-    # Welcome Section
+    # Welcome Section 
     welcome_section = ft.Container(
         content=ft.Text(
-            "Your Personalized Event Experience Starts Here.",
+            "Your Personalized Event Experience Starts Here!",
             size=50,
             weight=ft.FontWeight.BOLD,
             color="white"
         ),
         alignment=ft.alignment.center,
-        padding=20
+        padding=20,
+        expand=True  
     )
 
     # Events List
@@ -105,8 +108,8 @@ def main(page: ft.Page):
             color="white",
             on_click=lambda _: print("Explore clicked"),
             style=ft.ButtonStyle(
-                padding=ft.padding.symmetric(vertical=20, horizontal=40),  # Larger padding for bigger button
-                text_style=ft.TextStyle(size=24, weight=ft.FontWeight.BOLD)  # Larger text size
+                padding=ft.padding.symmetric(vertical=20, horizontal=40),
+                text_style=ft.TextStyle(size=24, weight=ft.FontWeight.BOLD) 
             ),
         ),
         alignment=ft.alignment.center,
@@ -116,12 +119,12 @@ def main(page: ft.Page):
     # Main Layout
     homepage_view = ft.Column(
         controls=[
-            header,
-            welcome_section,
-            events_section,
-            footer_button
+            header,  
+            welcome_section,  
+            events_section,  
+            footer_button 
         ],
-        alignment=ft.MainAxisAlignment.CENTER,
+        alignment=ft.MainAxisAlignment.START,  
         expand=True
     )
 
