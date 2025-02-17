@@ -15,7 +15,7 @@ def main(page: ft.Page):
     
     # Use the downloaded image as the logo
     logo_image = ft.Image(
-        src="exlogo.png",  # Ensure this image file is in your project directory
+        src="logo1.png",  # Ensure this image file is in your project directory
         width=200,
         height=60,
         fit=ft.ImageFit.CONTAIN 
