@@ -18,16 +18,18 @@ def close_dialog(page):
 
 def load_login(page: ft.Page):
     page.title = "EventLink - Login"
-
+  
+    page.bgcolor = "#0C3B2E"
+    
     # --------------------
     # Build Login View
     # --------------------
     login_identifier = ft.TextField(
         label="Username or Email",
-        label_style=ft.TextStyle(color="white"),
+        label_style=ft.TextStyle(color="#FFBA00"),
         text_style=ft.TextStyle(color="white"),
         width=500,
-        border_color="white",
+        border_color="#FFBA00",
         border_radius=10,
         content_padding=ft.padding.all(10)
     )
@@ -35,11 +37,11 @@ def load_login(page: ft.Page):
 
     login_password = ft.TextField(
         label="Password",
-        label_style=ft.TextStyle(color="white"),
+        label_style=ft.TextStyle(color="#FFBA00"),
         text_style=ft.TextStyle(color="white"),
         width=500,
         password=True,
-        border_color="white",
+        border_color="#FFBA00",
         border_radius=10,
         content_padding=ft.padding.all(10)
     )
@@ -50,8 +52,8 @@ def load_login(page: ft.Page):
     
     def login(e):
         # Reset border colors and error labels
-        login_identifier.border_color = "white"
-        login_password.border_color = "white"
+        login_identifier.border_color = "#FFBA00"
+        login_password.border_color = "#FFBA00"
         login_identifier_error.value = ""
         login_password_error.value = ""
         login_message.value = ""
@@ -93,16 +95,19 @@ def load_login(page: ft.Page):
     login_button = ft.ElevatedButton(
         "Login",
         on_click=login,
-        style=ft.ButtonStyle(side=ft.BorderSide(color="white", width=0.5))
+        bgcolor="#B46617",       
+        color="white",           
+        style=ft.ButtonStyle(
+            shape=ft.RoundedRectangleBorder(radius=10)
+        )
     )
     login_button.width = 100
-    login_button.color = "white"
 
     # Button to navigate to the signup view.
     login_to_signup = ft.TextButton(
         content=ft.Text(
             "Don't have an account? Sign up here",
-            color="white",
+            color="#FFBA00",  
             style=ft.TextStyle(decoration=ft.TextDecoration.UNDERLINE)
         )
     )
@@ -111,7 +116,7 @@ def load_login(page: ft.Page):
     login_view = ft.Column(
         controls=[
             ft.Container(
-                content=ft.Text("Login", size=24, weight=ft.FontWeight.BOLD, color="white"),
+                content=ft.Text("Login", size=24, weight=ft.FontWeight.BOLD, color="#FFBA00"),
                 margin=ft.margin.only(bottom=10)
             ),
             ft.Column(controls=[login_identifier, login_identifier_error], spacing=2),
@@ -127,14 +132,17 @@ def load_login(page: ft.Page):
         content=login_view,
         alignment=ft.alignment.center_left,
         width=550,
-        margin=ft.margin.only(left=150)
+        margin=ft.margin.only(left=150, top=50),
+        bgcolor="#6D9773",       # Card background  color.
+        border_radius=20,
+        padding=ft.padding.all(20)
     )
     
     # --------------------
     # Build Logo Container
     # --------------------
     logo_image = ft.Image(
-        src="exlogo.png",  # Ensure "exlogo.png" is in your project directory.
+        src="exlogo.png",  
         width=300,
         height=300,
         fit=ft.ImageFit.CONTAIN
