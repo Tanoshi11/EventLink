@@ -1,6 +1,6 @@
 # EventLink
 
-*(Ubuntu WSL)*
+## (Ubuntu WSL)
 
 Follow these instructions to set up and run the platform on Ubuntu WSL.
 
