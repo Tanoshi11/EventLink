@@ -44,7 +44,7 @@ python3 -m venv eventlink
 Activate the virtual environment:
 
 ```bash
-source env/bin/activate
+source eventlink/bin/activate
 ```
 
 Your prompt should now display (eventlink) indicating the virtual environment is active.
