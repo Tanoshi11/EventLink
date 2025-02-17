@@ -87,7 +87,7 @@ def main(page: ft.Page):
             "Your Personalized Event Experience Starts Here!",
             size=50,
             weight=ft.FontWeight.BOLD,
-            color="white"
+            color="white",
             text_align=ft.TextAlign.CENTER 
         ),
         alignment=ft.alignment.center,
