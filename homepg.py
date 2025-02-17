@@ -14,15 +14,13 @@ def main(page: ft.Page):
          import user_profile
          user_profile.show_profile(page)
     
-    # Use the downloaded image as the logo
     logo_image = ft.Image(
         src="logo1.png",  # Ensure this image file is in your project directory
-        width=400,
+        width=200,
         height=80,
         fit=ft.ImageFit.CONTAIN 
     )
     
-  
     # Fetch events from FastAPI
     try:
         response = httpx.get("http://127.0.0.1:8000/events")
@@ -32,7 +30,7 @@ def main(page: ft.Page):
     except Exception as ex:
         event_widgets = [ft.Text("Failed to fetch events", color="red")]
 
-    # Header (Navigation Bar)
+    # Header 
     header = ft.Container(
         content=ft.Row([
             ft.Container(width=15),
@@ -77,14 +75,14 @@ def main(page: ft.Page):
                 ]
             )
         ]),
-        bgcolor="#0C3B2E",  # Dark green
+        bgcolor="#2C6D4F", 
         padding=5
     )
 
     # Welcome Section
     welcome_section = ft.Container(
         content=ft.Text(
-            "Welcome to EventLink!",
+            "Your Personalized Event Experience Starts Here.",
             size=50,
             weight=ft.FontWeight.BOLD,
             color="white"
@@ -99,13 +97,17 @@ def main(page: ft.Page):
         padding=20
     )
 
-    # Footer Button
+    # Footer Button with adjustments
     footer_button = ft.Container(
         content=ft.ElevatedButton(
             text="Explore Events",
             bgcolor="#6D9773",  # Soft green button
             color="white",
             on_click=lambda _: print("Explore clicked"),
+            style=ft.ButtonStyle(
+                padding=ft.padding.symmetric(vertical=20, horizontal=40),  # Larger padding for bigger button
+                text_style=ft.TextStyle(size=24, weight=ft.FontWeight.BOLD)  # Larger text size
+            ),
         ),
         alignment=ft.alignment.center,
         padding=20
