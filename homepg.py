@@ -14,7 +14,7 @@ def main(page: ft.Page):
          import user_profile
          user_profile.show_profile(page)
     
-    
+    # Image for the logo
     logo_image = ft.Image(
         src="logo1.png",  
         width=200,
@@ -43,7 +43,7 @@ def main(page: ft.Page):
                 suffix=ft.IconButton(
                     icon=ft.Icons.SEARCH,
                     on_click=lambda e: print("Search clicked"),
-                    icon_color="#FFBA00",  
+                    icon_color="white",  
                     icon_size=30
                 ),
                 border_color="white",
@@ -53,17 +53,37 @@ def main(page: ft.Page):
                 label_style=ft.TextStyle(color="white", size=20)
             ),
             ft.IconButton(
-                icon=ft.Icons.EVENT,
-                on_click=lambda e: print("Event clicked"),
+                icon=ft.Icons.SAVINGS,
+                on_click=lambda: print("Savings Clicked"),
                 icon_color="#FFBA00",
-                icon_size=40,
-                bgcolor="#B46617"  
+                icon_size=40, 
+                width=100,
+                tooltip="",
             ),
             ft.PopupMenuButton(
-                icon=ft.Icons.PERSON,
+                icon=ft.Icons.EVENT_AVAILABLE_SHARP,
+                icon_color="#FFBA00",
+                icon_size=40, 
+                width=100,
+                tooltip="",
+                # items=[
+                #     ft.PopupMenuItem(
+                #         text="Organize Event",
+                #         on_click=lambda e: print("Organize clicked"),
+                #     ),
+                #     ft.PopupMenuItem(
+                #         text="Volunteer Event",
+                #         on_click=lambda e: print("Volunteer clicked"),
+                #     )
+                # ]
+            ),
+            ft.PopupMenuButton(
+                icon=ft.Icons.PERSON_ROUNDED,
                 icon_color="#FFBA00",
                 icon_size=40,
+                width=100,
                 bgcolor="#B46617",
+                tooltip="",
                 items=[
                     ft.PopupMenuItem(
                         text="Info",

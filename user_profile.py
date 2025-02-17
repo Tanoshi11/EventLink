@@ -63,7 +63,9 @@ def show_profile(page: ft.Page):
             ft.Text(f"Contact: {user_data['contact']}", size=20),
             ft.Text(f"Status: {user_data['status']}", size=20),
             ft.Text(f"Date Joined: {user_data['date_joined']}", size=20),
-            ft.ElevatedButton("Back to Home", on_click=lambda e: back_to_home(page))
+            ft.ElevatedButton("Back to Home", on_click=lambda e: back_to_home(page),bgcolor="#B46617", color = "white", style=ft.ButtonStyle(
+            shape=ft.RoundedRectangleBorder(radius=10)
+        ))
         ],
         alignment=ft.MainAxisAlignment.CENTER,
         horizontal_alignment=ft.CrossAxisAlignment.CENTER,

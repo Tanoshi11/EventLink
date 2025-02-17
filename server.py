@@ -73,7 +73,7 @@ def get_user(username: str):
 @app.get("/events")
 def get_events():
     return [
-        {"title": "Operating Systems"},
-        {"title": "Software Design"},
-        {"title": "Electronics Lecture"},
+        {"title": "Event 1"},
+        {"title": "Event 2"},
+        {"title": "Event 3"},
     ]

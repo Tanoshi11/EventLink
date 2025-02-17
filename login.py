@@ -26,10 +26,10 @@ def load_login(page: ft.Page):
     # --------------------
     login_identifier = ft.TextField(
         label="Username or Email",
-        label_style=ft.TextStyle(color="#FFBA00"),
-        text_style=ft.TextStyle(color="white"),
+        label_style=ft.TextStyle(color="#EAE3D2"),
+        text_style=ft.TextStyle(color="#F5E7C4"),
         width=500,
-        border_color="#FFBA00",
+        border_color="#D4A937",
         border_radius=10,
         content_padding=ft.padding.all(10)
     )
@@ -37,11 +37,11 @@ def load_login(page: ft.Page):
 
     login_password = ft.TextField(
         label="Password",
-        label_style=ft.TextStyle(color="#FFBA00"),
-        text_style=ft.TextStyle(color="white"),
+        label_style=ft.TextStyle(color="#EAE3D2"),
+        text_style=ft.TextStyle(color="#F5E7C4"),
         width=500,
         password=True,
-        border_color="#FFBA00",
+        border_color="#D4A937",
         border_radius=10,
         content_padding=ft.padding.all(10)
     )
@@ -53,7 +53,7 @@ def load_login(page: ft.Page):
     def login(e):
         # Reset border colors and error labels
         login_identifier.border_color = "#FFBA00"
-        login_password.border_color = "#FFBA00"
+        login_password.border_color = "#F5E7C4"
         login_identifier_error.value = ""
         login_password_error.value = ""
         login_message.value = ""
@@ -95,7 +95,7 @@ def load_login(page: ft.Page):
     login_button = ft.ElevatedButton(
         "Login",
         on_click=login,
-        bgcolor="#B46617",       
+        bgcolor="#C77000",       
         color="white",           
         style=ft.ButtonStyle(
             shape=ft.RoundedRectangleBorder(radius=10)
@@ -107,7 +107,7 @@ def load_login(page: ft.Page):
     login_to_signup = ft.TextButton(
         content=ft.Text(
             "Don't have an account? Sign up here",
-            color="#FFBA00",  
+            color="#F5E7C4",
             style=ft.TextStyle(decoration=ft.TextDecoration.UNDERLINE)
         )
     )
@@ -116,7 +116,7 @@ def load_login(page: ft.Page):
     login_view = ft.Column(
         controls=[
             ft.Container(
-                content=ft.Text("Login", size=24, weight=ft.FontWeight.BOLD, color="#FFBA00"),
+                content=ft.Text("Login", size=24, weight=ft.FontWeight.BOLD, color="#F5E7C4"),
                 margin=ft.margin.only(bottom=10)
             ),
             ft.Column(controls=[login_identifier, login_identifier_error], spacing=2),
@@ -132,7 +132,7 @@ def load_login(page: ft.Page):
         content=login_view,
         alignment=ft.alignment.center_left,
         width=550,
-        margin=ft.margin.only(left=150, top=50),
+        margin=ft.margin.only(left=150, top=150, bottom=150),
         bgcolor="#6D9773",       # Card background  color.
         border_radius=20,
         padding=ft.padding.all(20)
@@ -143,15 +143,15 @@ def load_login(page: ft.Page):
     # --------------------
     logo_image = ft.Image(
         src="logo1.png",  
-        width=300,
-        height=300,
+        width=500,
+        height=500,
         fit=ft.ImageFit.CONTAIN
     )
     logo_container = ft.Container(
         content=logo_image,
         alignment=ft.alignment.center_right,
         expand=True,
-        margin=ft.margin.only(right=250, bottom=100)
+        margin=ft.margin.only(left=150, right=250, bottom=100)
     )
     
     def switch_view(page: ft.Page, view: str):

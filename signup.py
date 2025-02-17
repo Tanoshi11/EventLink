@@ -25,28 +25,28 @@ def load_signup(page: ft.Page):
     # --------------------
     signup_username = ft.TextField(
         label="Username",
-        label_style=ft.TextStyle(color="#FFBA00"),
-        text_style=ft.TextStyle(color="white"),
+        label_style=ft.TextStyle(color="#EAE3D2"),
+        text_style=ft.TextStyle(color="#F5E7C4"),
         width=500,
-        border_color="#FFBA00",
+        border_color="#D4A937",
         border_radius=10,
         content_padding=ft.padding.all(10)
     )
     signup_email = ft.TextField(
         label="Email",
-        label_style=ft.TextStyle(color="#FFBA00"),
-        text_style=ft.TextStyle(color="white"),
+        label_style=ft.TextStyle(color="#EAE3D2"),
+        text_style=ft.TextStyle(color="#F5E7C4"),
         width=500,
-        border_color="#FFBA00",
+        border_color="#D4A937",
         border_radius=10,
         content_padding=ft.padding.all(10)
     )
     signup_contact = ft.TextField(
         label="Contact Number",
-        label_style=ft.TextStyle(color="#FFBA00"),
-        text_style=ft.TextStyle(color="white"),
+        label_style=ft.TextStyle(color="#EAE3D2"),
+        text_style=ft.TextStyle(color="#F5E7C4"),
         width=500,
-        border_color="#FFBA00",
+        border_color="#D4A937",
         border_radius=10,
         content_padding=ft.padding.all(10),
         input_filter=ft.InputFilter(
@@ -57,11 +57,11 @@ def load_signup(page: ft.Page):
     )
     signup_password = ft.TextField(
         label="Password",
-        label_style=ft.TextStyle(color="#FFBA00"),
-        text_style=ft.TextStyle(color="white"),
+        label_style=ft.TextStyle(color="#EAE3D2"),
+        text_style=ft.TextStyle(color="#F5E7C4"),
         width=500,
         password=True,
-        border_color="#FFBA00",
+        border_color="#D4A937",
         border_radius=10,
         content_padding=ft.padding.all(10)
     )
@@ -153,7 +153,7 @@ def load_signup(page: ft.Page):
     signup_button = ft.ElevatedButton(
         "Sign Up",
         on_click=signup,
-        bgcolor="#B46617",   # Button background
+        bgcolor="#C77000",   # Button background
         color="white",       # Button text color
         style=ft.ButtonStyle(
             shape=ft.RoundedRectangleBorder(radius=10)
@@ -164,7 +164,7 @@ def load_signup(page: ft.Page):
     signup_to_login = ft.TextButton(
         content=ft.Text(
             "Already have an account? Log in here",
-            color="#FFBA00",  # Accent color for links
+            color="#F5E7C4",  # Accent color for links
             style=ft.TextStyle(decoration=ft.TextDecoration.UNDERLINE)
         )
     )
@@ -173,7 +173,7 @@ def load_signup(page: ft.Page):
     signup_view = ft.Column(
         controls=[
             ft.Container(
-                content=ft.Text("Sign Up", size=24, weight=ft.FontWeight.BOLD, color="#FFBA00"),
+                content=ft.Text("Sign Up", size=24, weight=ft.FontWeight.BOLD, color="#F5E7C4"),
                 margin=ft.margin.only(bottom=10)
             ),
             ft.Column(controls=[signup_username, username_error], spacing=2),
@@ -191,7 +191,7 @@ def load_signup(page: ft.Page):
         content=signup_view,
         alignment=ft.alignment.center_left,
         width=550,
-        margin=ft.margin.only(left=150, top=50),
+        margin=ft.margin.only(left=150, top=80, bottom=80),
         bgcolor="#6D9773",   # Form container background
         border_radius=20,
         padding=ft.padding.all(20)
@@ -201,16 +201,16 @@ def load_signup(page: ft.Page):
     # Build Logo Container (similar to login page)
     # --------------------
     logo_image = ft.Image(
-        src="exlogo.png",  # Ensure your logo file is in the project directory.
-        width=300,
-        height=300,
+        src="logo1.png",  # Ensure your logo file is in the project directory.
+        width=500,
+        height=500,
         fit=ft.ImageFit.CONTAIN
     )
     logo_container = ft.Container(
         content=logo_image,
         alignment=ft.alignment.center_right,
         expand=True,
-        margin=ft.margin.only(right=250, bottom=100)
+        margin=ft.margin.only(left=150, right=250, bottom=100)
     )
     
     def switch_view(page: ft.Page, view: str):
