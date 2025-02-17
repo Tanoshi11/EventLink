@@ -16,7 +16,7 @@ def main(page: ft.Page):
     
     # Image for the logo
     logo_image = ft.Image(
-        src="logo1.png",  
+        src="eventlink.png",  
         width=200,
         height=80,
         fit=ft.ImageFit.CONTAIN 
