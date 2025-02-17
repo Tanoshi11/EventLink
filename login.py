@@ -107,7 +107,7 @@ def load_login(page: ft.Page):
     login_to_signup = ft.TextButton(
         content=ft.Text(
             "Don't have an account? Sign up here",
-            color="#F5E7C4",
+            color="#FDF7E3",
             style=ft.TextStyle(decoration=ft.TextDecoration.UNDERLINE)
         )
     )
@@ -116,7 +116,7 @@ def load_login(page: ft.Page):
     login_view = ft.Column(
         controls=[
             ft.Container(
-                content=ft.Text("Login", size=24, weight=ft.FontWeight.BOLD, color="#F5E7C4"),
+                content=ft.Text("Login", size=24, weight=ft.FontWeight.BOLD, color="#FDF7E3"),
                 margin=ft.margin.only(bottom=10)
             ),
             ft.Column(controls=[login_identifier, login_identifier_error], spacing=2),
@@ -133,7 +133,7 @@ def load_login(page: ft.Page):
         alignment=ft.alignment.center_left,
         width=550,
         margin=ft.margin.only(left=150, top=150, bottom=150),
-        bgcolor="#6D9773",       # Card background  color.
+        bgcolor="#5F7755",       # Card background  color.
         border_radius=20,
         padding=ft.padding.all(20)
     )

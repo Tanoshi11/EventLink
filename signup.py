@@ -164,7 +164,7 @@ def load_signup(page: ft.Page):
     signup_to_login = ft.TextButton(
         content=ft.Text(
             "Already have an account? Log in here",
-            color="#F5E7C4",  # Accent color for links
+            color="#FDF7E3",  # Accent color for links
             style=ft.TextStyle(decoration=ft.TextDecoration.UNDERLINE)
         )
     )
@@ -173,7 +173,7 @@ def load_signup(page: ft.Page):
     signup_view = ft.Column(
         controls=[
             ft.Container(
-                content=ft.Text("Sign Up", size=24, weight=ft.FontWeight.BOLD, color="#F5E7C4"),
+                content=ft.Text("Sign Up", size=24, weight=ft.FontWeight.BOLD, color="#FDF7E3"),
                 margin=ft.margin.only(bottom=10)
             ),
             ft.Column(controls=[signup_username, username_error], spacing=2),
@@ -192,7 +192,7 @@ def load_signup(page: ft.Page):
         alignment=ft.alignment.center_left,
         width=550,
         margin=ft.margin.only(left=150, top=80, bottom=80),
-        bgcolor="#6D9773",   # Form container background
+        bgcolor="#5F7755",   # Form container background
         border_radius=20,
         padding=ft.padding.all(20)
     )
