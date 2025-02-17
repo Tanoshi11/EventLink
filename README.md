@@ -1,6 +1,4 @@
-# EventLink
-
-Ubuntu WSL Setup Guide
+# Ubuntu WSL Setup Guide
 
 Follow these instructions to set up and run the platform on Ubuntu WSL.
 
