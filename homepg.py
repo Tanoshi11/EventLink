@@ -88,6 +88,7 @@ def main(page: ft.Page):
             size=50,
             weight=ft.FontWeight.BOLD,
             color="white"
+            text_align=ft.TextAlign.CENTER 
         ),
         alignment=ft.alignment.center,
         padding=20,
