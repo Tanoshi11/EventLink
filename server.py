@@ -69,11 +69,3 @@ def get_user(username: str):
         "contact": doc["contact"],
         "date_joined": doc.get("date_joined", "N/A")
     }
-
-@app.get("/events")
-def get_events():
-    return [
-        {"title": "Event 1"},
-        {"title": "Event 2"},
-        {"title": "Event 3"},
-    ]

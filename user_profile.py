@@ -1,6 +1,5 @@
 import flet as ft
 import httpx
-from datetime import datetime
 
 def show_profile(page: ft.Page):
     """
