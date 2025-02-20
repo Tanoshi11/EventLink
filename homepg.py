@@ -42,17 +42,7 @@ def main(page: ft.Page):
 
     def show_notifications(e):
         global notif_popup
-        notifications = [
-            "Notification 1: Event Update",
-            "Notification 2: New Message",
-            "Notification 3: System Maintenance",
-            "Notification 4: Special Offer",
-            "Notification 5: Reminder",
-            "Notification 5: Reminder",
-            "Notification 5: Reminder",
-            "Notification 5: Reminder",
-            # ... add more if needed ...
-        ]
+        notifications = [f"Notification {i}: Event Update" for i in range(1, 101)]  
 
         def on_click_event(event_text):
             print(f"Event clicked: {event_text}")
@@ -174,6 +164,7 @@ def main(page: ft.Page):
         ft.VerticalDivider(width=1, color="white",leading_indent=30,trailing_indent=30),
         # Shop Button
       ft.Container(
+        tooltip=None,
             content=ft.TextButton(
                 text="Shop",
                 on_click=lambda e: print("Shop clicked"),
@@ -197,6 +188,7 @@ def main(page: ft.Page):
         # Events Popup Menu
         ft.Container(
             content=ft.PopupMenuButton(
+                tooltip="",
                 content=ft.Container(
                     content=ft.Text(
                         "Events",
@@ -268,6 +260,7 @@ ft.Container(
 # Profile Popup Menu Container with a border overlay
 ft.Container(
     content=ft.PopupMenuButton(
+        tooltip="Profile",
         content=ft.Container(
             content=ft.Icon(name=ft.Icons.PERSON_ROUNDED, color="#FFBA00", size=40),
             alignment=ft.alignment.center
