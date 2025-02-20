@@ -132,99 +132,179 @@ def main(page: ft.Page):
 
     # ----------------- Taskbar (Header) -----------------
     header = ft.Row(
-        controls=[
-            ft.Container(width=15),
-            ft.Container(
-                content=ft.Image(src="images/eventlink.png", width=200, height=80, fit=ft.ImageFit.CONTAIN),
-                margin=ft.margin.only(right=10)
+    controls=[
+        ft.Container(width=15),
+        ft.Container(
+            content=ft.Image(src="images/eventlink.png", width=200, height=80, fit=ft.ImageFit.CONTAIN),
+            margin=ft.margin.only(right=10)
+        ),
+        # Search and Location Fields
+        ft.Container(
+            content=ft.Row(
+                controls=[
+                    ft.Icon(name=ft.Icons.SEARCH, color="white", size=30),
+                    ft.TextField(
+                        hint_text="Search events",
+                        border=None,
+                        expand=True,
+                        text_style=ft.TextStyle(size=18, color="white"),
+                        border_radius=20,
+                        border_color="#B46617"
+                    ),
+                    ft.VerticalDivider(width=1, color="white"),
+                    ft.Icon(name=ft.Icons.LOCATION_ON, color="white", size=30),
+                    ft.TextField(
+                        hint_text="Select Location",
+                        border=None,
+                        expand=True,
+                        text_style=ft.TextStyle(size=18, color="white"),
+                        border_radius=20,
+                        border_color="#B46617"
+                    ),
+                ],
+                alignment=ft.MainAxisAlignment.SPACE_BETWEEN
             ),
-            # Search and Location Fields
-            ft.Container(
+            border_radius=15,
+            border=ft.border.all(1, "#B46617"),
+            padding=ft.padding.symmetric(horizontal=15, vertical=10),
+            expand=True,
+            bgcolor="#105743",
+            margin=ft.margin.only(top=16, bottom=16,right=30)
+        ),
+        ft.VerticalDivider(width=1, color="white",leading_indent=30,trailing_indent=30),
+        # Shop Button
+      ft.Container(
+            content=ft.TextButton(
+                text="Shop",
+                on_click=lambda e: print("Shop clicked"),
+                style=ft.ButtonStyle(
+                    bgcolor=ft.Colors.TRANSPARENT,
+                    overlay_color=ft.Colors.TRANSPARENT,
+                    elevation=0,
+                    color="white",
+                    text_style=ft.TextStyle(
+                        size=20,
+                        weight=ft.FontWeight.BOLD,
+                        letter_spacing=2
+                    )
+                )
+            ),
+            margin=ft.margin.only(left=30, right=30)
+        ),
+
+
+        ft.VerticalDivider(width=1, color="white",leading_indent=30,trailing_indent=30),
+        # Events Popup Menu
+        ft.Container(
+            content=ft.PopupMenuButton(
+                content=ft.Container(
+                    content=ft.Text(
+                        "Events",
+                        style=ft.TextStyle(
+                            size=20,
+                            color="white",
+                            weight=ft.FontWeight.BOLD,
+                            letter_spacing=1.5  # Adjust spacing as needed
+                        )
+                    ),
+                    alignment=ft.alignment.center
+                ),
+                height=55,
+                width=175,
+                bgcolor="#B46617",
+                menu_position=ft.PopupMenuPosition.UNDER,
+                items=[
+                    ft.PopupMenuItem(
+                        content=ft.Row(
+                            controls=[
+                                ft.Icon(name=ft.Icons.CALENDAR_TODAY, color="white", size=15),
+                                ft.Text("My Events", style=ft.TextStyle(color="white", size=15))
+                            ],
+                            spacing=5
+                        ),
+                        on_click=lambda e: print("My Events clicked")
+                    ),
+                    ft.PopupMenuItem(
+                        content=ft.Row(
+                            controls=[
+                                ft.Icon(name=ft.Icons.EVENT_NOTE, color="white", size=15),
+                                ft.Text("Create Event", style=ft.TextStyle(color="white", size=15))
+                            ],
+                            spacing=5
+                        ),
+                        on_click=lambda e: print("Create Event clicked")
+                    ),
+                    ft.PopupMenuItem(
+                        content=ft.Row(
+                            controls=[
+                                ft.Icon(name=ft.Icons.SENTIMENT_SATISFIED, color="white", size=15),
+                                ft.Text("Volunteer", style=ft.TextStyle(color="white", size=15))
+                            ],
+                            spacing=5
+                        ),
+                        on_click=lambda e: print("Volunteer clicked")
+                    )
+                ]
+            ),
+            margin=ft.margin.only(left=3, right=3)
+        ),
+
+
+        ft.VerticalDivider(width=1, color="white",leading_indent=30,trailing_indent=30),
+        # Notifications Icon Container with a border overlay
+ft.Container(
+    content=ft.IconButton(
+        icon=ft.Icons.NOTIFICATIONS,
+        on_click=open_notifications,
+        icon_color="#FFBA00",
+        icon_size=40,
+        tooltip="Notifications",
+        width=60
+    ),
+    margin=ft.margin.only(left=40, right=10),
+    border=ft.border.all(2, "#105743"),border_radius=30
+),
+
+# Profile Popup Menu Container with a border overlay
+ft.Container(
+    content=ft.PopupMenuButton(
+        content=ft.Container(
+            content=ft.Icon(name=ft.Icons.PERSON_ROUNDED, color="#FFBA00", size=40),
+            alignment=ft.alignment.center
+        ),
+        height=55,
+        width=60,
+        bgcolor="#B46617",
+        menu_position=ft.PopupMenuPosition.UNDER,
+        items=[
+            ft.PopupMenuItem(
                 content=ft.Row(
                     controls=[
-                        ft.Icon(ft.Icons.SEARCH, color="white", size=30),
-                        ft.TextField(
-                            hint_text="Search events",
-                            border=None,
-                            expand=True,
-                            text_style=ft.TextStyle(size=18, color="white"),
-                            border_radius=20,
-                            border_color="#B46617"
-                        ),
-                        ft.VerticalDivider(width=1, color="white"),
-                        ft.Icon(ft.Icons.LOCATION_ON, color="white", size=30),
-                        ft.TextField(
-                            hint_text="Select Location",
-                            border=None,
-                            expand=True,
-                            text_style=ft.TextStyle(size=18, color="white"),
-                            border_radius=20,
-                            border_color="#B46617"
-                        ),
+                        ft.Icon(name=ft.Icons.PERSON_ROUNDED, color="white", size=15),
+                        ft.Text("Profile", style=ft.TextStyle(color="white", size=15))
                     ],
-                    alignment=ft.MainAxisAlignment.SPACE_BETWEEN
+                    spacing=5
                 ),
-                border_radius=15,
-                border=ft.border.all(1, "#B46617"),
-                padding=ft.padding.symmetric(horizontal=15, vertical=10),
-                expand=True,
-                bgcolor="#105743",
-                margin=ft.margin.only(top=16, bottom=16)
+                on_click=show_profile_page
             ),
-            # Shop Button
-            ft.Container(
-                content=ft.TextButton(
-                    text="Shop",
-                    on_click=lambda e: print("Shop clicked"),
-                    style=ft.ButtonStyle(color="white", text_style=ft.TextStyle(size=20)),
-                    height=55
+            ft.PopupMenuItem(
+                content=ft.Row(
+                    controls=[
+                        ft.Icon(name=ft.Icons.EXIT_TO_APP, color="white", size=15),
+                        ft.Text("Logout", style=ft.TextStyle(color="white", size=15))
+                    ],
+                    spacing=5
                 ),
-                margin=ft.margin.only(left=50, right=10)
-            ),
-            # Events Popup Menu
-            ft.Container(
-                content=ft.PopupMenuButton(
-                    content=ft.Text("Events", style=ft.TextStyle(size=20, color="white")),
-                    bgcolor="#B46617",
-                    items=[
-                        ft.PopupMenuItem(text="My Events", on_click=lambda e: print("My Events clicked")),
-                        ft.PopupMenuItem(text="Create Event", on_click=lambda e: print("Create Event clicked")),
-                        ft.PopupMenuItem(text="Volunteer", on_click=lambda e: print("Volunteer clicked"))
-                    ]
-                ),
-                margin=ft.margin.only(left=50, right=10)
-            ),
-            # Notifications Icon
-            ft.Container(
-                content=ft.IconButton(
-                    icon=ft.Icons.NOTIFICATIONS,
-                    on_click=open_notifications,
-                    icon_color="#FFBA00",
-                    icon_size=40,
-                    tooltip="Notifications",
-                    width=60
-                ),
-                margin=ft.margin.only(left=50, right=10)
-            ),
-            # Profile Popup Menu
-            ft.Container(
-                content=ft.PopupMenuButton(
-                    icon=ft.Icons.PERSON_ROUNDED,
-                    icon_color="#FFBA00",
-                    icon_size=40,
-                    bgcolor="#B46617",
-                    tooltip="Profile Menu",
-                    width=60,
-                    items=[
-                        ft.PopupMenuItem(text="Profile", on_click=show_profile_page),
-                        ft.PopupMenuItem(text="Logout", on_click=logout)
-                    ]
-                ),
-                margin=ft.margin.only(left=50, right=20)
-            ),
-        ],
-        alignment=ft.MainAxisAlignment.SPACE_BETWEEN
-    )
+                on_click=logout
+            )
+        ]
+    ),
+    margin=ft.margin.only(left=50, right=20),
+    border=ft.border.all(2, "#105743"),
+        border_radius=30
+)
+    ]
+)
 
     # The taskbar container sits at the very top.
     taskbar = ft.Container(
