@@ -268,7 +268,6 @@ ft.Container(
         height=55,
         width=60,
         bgcolor="#B46617",
-        menu_position=ft.PopupMenuPosition.UNDER,
         items=[
             ft.PopupMenuItem(
                 content=ft.Row(
