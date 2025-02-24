@@ -1,1 +1,1 @@
-# for profile features
+# for resertting password / forgot password
