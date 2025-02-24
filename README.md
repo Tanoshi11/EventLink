@@ -116,7 +116,7 @@ This project includes a comprehensive unit test suite to verify the functionalit
     From the project’s root directory, run:
     
     ```bash
-    python test_app.py
+    python3 test_app.py
     ```
     
     This command will execute all tests. The output will indicate which tests passed, failed, or were skipped.

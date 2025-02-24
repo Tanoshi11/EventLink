@@ -201,7 +201,7 @@ def load_signup(page: ft.Page):
     # Build Logo Container (similar to login page)
     # --------------------
     logo_image = ft.Image(
-        src="eventlink.png",  # Ensure your logo file is in the project directory.
+        src="images/eventlink.png",  # Ensure your logo file is in the project directory.
         width=500,
         height=500,
         fit=ft.ImageFit.CONTAIN
