@@ -1,18 +1,36 @@
 import flet as ft
-from flet import Page, Row, Column, Container, Text, TextField, ElevatedButton, Image, Dropdown, alignment, border_radius, colors
+from flet import (
+    Row,
+    Column,
+    Container,
+    Text,
+    TextField,
+    ElevatedButton,
+    Image,
+    Dropdown,
+    border_radius
+)
 import datetime
+import httpx  # Import httpx
 
 # Define theme colors
-PRIMARY_COLOR = "#6d9773"      
-SECONDARY_COLOR = "#0c3b2e"    
-ACCENT_COLOR = "#b46617"        
-HIGHLIGHT_COLOR = "#ffba00"     
+PRIMARY_COLOR = "#6d9773"       # Accent green
+SECONDARY_COLOR = "#0c3b2e"     # Dark green (used for headers/forms)
+ACCENT_COLOR = "#b46617"        # Warm accent (for text or titles)
+HIGHLIGHT_COLOR = "#ffba00"     # Highlight yellow
+
+def fetch_regions():
+    try:
+        response = httpx.get("http://127.0.0.1:8000/regions")
+        response.raise_for_status()
+        return response.json()["regions"]
+    except:
+        return []
 
 def validate_date(date_str):
     if not date_str:
         return "Date is required."
     try:
-        # Expecting date format: YYYY-MM-DD
         datetime.datetime.strptime(date_str, "%Y-%m-%d")
         return None
     except ValueError:
@@ -22,37 +40,31 @@ def validate_time(time_str):
     if not time_str:
         return "Time is required."
     try:
-        # Expecting time format: HH:MM (24-hour)
         datetime.datetime.strptime(time_str, "%H:%M")
         return None
     except ValueError:
         return "Invalid time format. Use HH:MM (24-hour)."
 
+def go_back(e, page):
+    import homepg
+    page.controls.clear()
+    homepg.main(page)
+    page.update()
+
 def main(page: ft.Page):
-    page.title = "EventLink"
-    page.bgcolor = PRIMARY_COLOR  # Fill background with primary color so no white border is seen
-    page.window_width = 1200
-    page.window_height = 700
+    page.title = "Create Event"
+    page.bgcolor = "#5F7755"
 
-    
-    def go_back(e):
-        print("Back button clicked!")
-        # Add your navigation logic here
-
-   
+    # --- Back Button (top-left) ---
     back_button = ElevatedButton(
-        "Back",
+        text="Back",
         icon=ft.icons.ARROW_BACK,
-        on_click=go_back,
+        on_click=lambda e: go_back(e, page),
         bgcolor=HIGHLIGHT_COLOR,
         color=SECONDARY_COLOR
     )
-    back_button_row = Row(
-        controls=[back_button],
-        alignment=ft.MainAxisAlignment.START
-    )
 
-    
+    # --- Event Form Fields ---
     event_name = TextField(label="Event Name", width=400)
     event_type = Dropdown(
         label="Event Type",
@@ -63,11 +75,17 @@ def main(page: ft.Page):
             ft.dropdown.Option("Sports"),
             ft.dropdown.Option("Workshops"),
             ft.dropdown.Option("Seminars"),
-        ],
+        ]
     )
     event_date = TextField(label="Date (YYYY-MM-DD)", width=400)
     event_time = TextField(label="Time (HH:MM)", width=400)
-    event_location = TextField(label="Location", width=400)
+
+    luzon_regions = fetch_regions()
+    event_location = Dropdown(
+        label="Location",
+        width=400,
+        options=[ft.dropdown.Option(region) for region in luzon_regions]
+    )
     event_description = TextField(label="Description", multiline=True, width=400, height=80)
 
     def submit_form(e):
@@ -78,6 +96,12 @@ def main(page: ft.Page):
             error_found = True
         else:
             event_name.error_text = None
+
+        if not event_type.value:
+            event_type.error_text = "Event Type is required."
+            error_found = True
+        else:
+            event_type.error_text = None
 
         date_error = validate_date(event_date.value)
         if date_error:
@@ -105,74 +129,102 @@ def main(page: ft.Page):
         else:
             event_description.error_text = None
 
-        if not event_type.value:
-            event_type.error_text = "Event Type is required."
-            error_found = True
-        else:
-            event_type.error_text = None
-
         page.update()
-
         if error_found:
             return
 
         print("Form submitted!")
-        page.update()
+        print("Event Name:", event_name.value)
+        print("Event Type:", event_type.value)
+        print("Date:", event_date.value)
+        print("Time:", event_time.value)
+        print("Location:", event_location.value)
+        print("Description:", event_description.value)
 
-
+    # Column for the form
     form_column = Column(
         controls=[
-            Text("Create an Event", color=ACCENT_COLOR, size=18, weight="bold"),
+            Text("Create an Event", color="#F5E7C4", size=22, weight="bold"),
             event_name,
             event_type,
             event_date,
             event_time,
             event_location,
             event_description,
-            ElevatedButton("Submit", on_click=submit_form, bgcolor=HIGHLIGHT_COLOR, color=SECONDARY_COLOR),
+            ElevatedButton(
+                "Submit",
+                on_click=submit_form,
+                bgcolor=HIGHLIGHT_COLOR,
+                color=SECONDARY_COLOR
+            ),
         ],
-        spacing=10,
+        spacing=15
     )
 
-  
+    # Right container (dark green)
     right_container = Container(
         content=form_column,
         bgcolor=SECONDARY_COLOR,
         padding=20,
-        border_radius=border_radius.all(10)
+        border_radius=border_radius.all(10),
+        alignment=ft.alignment.center,
+        height=page.height * 0.5
     )
 
-   
+    # Left container (image)
     left_image = Image(
-        src="eventlink.png",  
+        src="images/eventlink.png",  # Make sure this path is correct
         width=500,
         height=500,
         fit="contain"
     )
     left_container = Container(
         content=left_image,
-        expand=True,
-        padding=20
+        padding=20,
+        alignment=ft.alignment.center
     )
 
-   
-    layout = Row(
-        controls=[
-            left_container,
-            right_container
-        ],
-        expand=True
+    # Row with image (left) and form (right)
+    main_row = Row(
+        controls=[left_container, right_container],
+        spacing=20,
+        alignment=ft.MainAxisAlignment.CENTER
     )
 
-   
-    final_layout = Column(
-        controls=[
-            back_button_row,
-            layout
-        ],
-        expand=True
-    )
+    # Optional: wrap row in a fixed-width container if you prefer
+    # main_content = Container(
+    #     content=main_row,
+    #     width=950,  # or any suitable width
+    #     alignment=ft.alignment.center
+    # )
 
+    # We'll just center the row itself in the stack
+    main_content = main_row
+
+    # --- Final Layout with a Stack ---
+    # 1) Pin back_button in top-left
+    # 2) Center main_content in the remaining space
+    final_layout = ft.Stack(
+    controls=[
+        # Centered main content first (behind)
+        Container(
+            content=main_content,
+            alignment=ft.alignment.center,
+            expand=True
+        ),
+        # Top-left button second (on top)
+        Container(
+            content=back_button,
+            alignment=ft.alignment.top_left,
+            margin=ft.margin.all(20)
+        ),
+    ],
+    expand=True
+)
+
+    page.controls.clear()
     page.add(final_layout)
+    page.update()
 
-ft.app(target=main)
+def load_create_event(page):
+    main(page)

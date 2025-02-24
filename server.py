@@ -2,6 +2,7 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, EmailStr
 from pymongo import MongoClient
 import bcrypt
+import httpx
 from datetime import datetime
 from typing import Optional
 
@@ -10,13 +11,44 @@ app = FastAPI()
 client = MongoClient("mongodb+srv://Tanoshi:nathaniel111@eventlink.1hfcs.mongodb.net/")
 db = client["EventLink"]
 users_collection = db["users"]
+regions_collection = db["regions"]
+events_collection = db["events"]
+
+# Updated Luzon regions list
+Luzon_regions = [
+    "Ilocos/Ilocandia",
+    "Cagayan Valley/Northern Luzon",
+    "Cordillera Administrative Region (CAR)",
+    "Central Luzon",
+    "National Capital Region (NCR)",
+    "Southern Tagalog Regions-4A (Cavite, Laguna, Batangas, Rizal, and Quezon)",
+    "Southern Tagalog Regions-4B (Mindoro, Marinduque, Romblon, and Palawan)",
+    "Bicol/Bicolandia"
+]
+
+# Force update regions collection on server start
+regions_collection.delete_many({})
+regions_collection.insert_many([{"name": region} for region in Luzon_regions])
+
+@app.get("/regions")
+def get_regions():
+    """Fetch all Luzon regions"""
+    regions = [region["name"] for region in regions_collection.find()]
+    return {"regions": regions}
+
+@app.get("/search_events")
+def search_events(region: str):
+    """Search events by location"""
+    events = list(events_collection.find({"location": region}, {"_id": 0}))
+    if not events:
+        raise HTTPException(status_code=404, detail="No events found for this location.")
+    return {"events": events}
 
 class UserRegister(BaseModel):
     username: str
     email: EmailStr
     contact: str
     password: str
-    # Optionally, you might allow gender during registration:
     gender: Optional[str] = "N/A"
 
 class UserLogin(BaseModel):
@@ -99,3 +131,7 @@ def update_user(username: str, updates: UserUpdate):
         return {"message": "User updated successfully"}
     else:
         return {"message": "No changes made"}
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="127.0.0.1", port=8000)

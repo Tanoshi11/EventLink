@@ -20,7 +20,7 @@ def close_dialog(page):
 
 # ----------------- Profile Page -----------------
 def show_profile(page: ft.Page):
-    page.bgcolor = "#064735"
+    page.bgcolor = "#d6aa54"
 
     username = page.data.get("username") if page.data else None
     if not username:
@@ -85,30 +85,30 @@ def show_profile(page: ft.Page):
         ft.Row([ft.Icon(ft.icons.HOME, color="#FFBA00"), ft.Text(f"Address: {user_data['address']}", size=18)])
     ], spacing=10)
 
-    transactions_section = ft.Column([
-        ft.Row([
-            ft.Icon(ft.icons.ACCOUNT_BALANCE_WALLET, color="#FFBA00"),
-            ft.TextButton(
-                "View My Wallet",
-                on_click=lambda e: view_wallet(page),
-                style=ft.ButtonStyle(
-                    color=ft.colors.WHITE,
-                    text_style=ft.TextStyle(size=18)
-                )
-            )
-        ]),
-        ft.Row([
-            ft.Icon(ft.icons.RECEIPT_LONG, color="#FFBA00"),
-            ft.TextButton(
-                "My Transactions",
-                on_click=lambda e: view_transactions(page),
-                style=ft.ButtonStyle(
-                    color=ft.colors.WHITE,
-                    text_style=ft.TextStyle(size=18)
-                )
-            )
-        ])
-    ], spacing=10)
+    # transactions_section = ft.Column([
+    #     ft.Row([
+    #         ft.Icon(ft.icons.ACCOUNT_BALANCE_WALLET, color="#FFBA00"),
+    #         ft.TextButton(
+    #             "View My Wallet",
+    #             on_click=lambda e: view_wallet(page),
+    #             style=ft.ButtonStyle(
+    #                 color=ft.colors.WHITE,
+    #                 text_style=ft.TextStyle(size=18)
+    #             )
+    #         )
+    #     ]),
+    #     ft.Row([
+    #         ft.Icon(ft.icons.RECEIPT_LONG, color="#FFBA00"),
+    #         ft.TextButton(
+    #             "My Transactions",
+    #             on_click=lambda e: view_transactions(page),
+    #             style=ft.ButtonStyle(
+    #                 color=ft.colors.WHITE,
+    #                 text_style=ft.TextStyle(size=18)
+    #             )
+    #         )
+    #     ])
+    # ], spacing=10)
 
     # Check for missing fields (incomplete details) excluding main email and contact
     incomplete_fields = any(value in ["N/A", "-"] for key, value in user_data.items() if key not in ["username", "date_joined", "email", "contact"])
@@ -195,8 +195,8 @@ def show_profile(page: ft.Page):
                 profile_content,
                 ft.Divider(color="white", thickness=2),
                 credentials_section,
-                ft.Divider(color="white", thickness=2),
-                transactions_section,
+                # ft.Divider(color="white", thickness=2),
+                # transactions_section,
                 ft.Divider(color="white", thickness=2),
                 edit_buttons_section,
                 back_to_home_container

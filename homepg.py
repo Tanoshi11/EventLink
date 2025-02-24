@@ -1,13 +1,14 @@
 import flet as ft
 import time
 import threading
+import httpx
 
 # Global variable to store the notification popup overlay
 notif_popup = None
 
 def main(page: ft.Page):
     page.title = "Home"
-    page.bgcolor = "#5F7755"
+    page.bgcolor = "#d6aa54"
     page.padding = 0  # Ensure no extra padding at the edges
 
     def logout(e):
@@ -114,6 +115,42 @@ def main(page: ft.Page):
             close_notifications(e)
 
     # ----------------- Taskbar (Header) -----------------
+    def get_regions():
+        try:
+            response = httpx.get("http://localhost:8000/regions")
+            if response.status_code == 200:
+                return response.json()["regions"]
+        except Exception as ex:
+            print("Error fetching regions:", ex)
+        return []
+
+    # Function to search events based on the selected region
+    def search_events(e):
+        region = region_dropdown.value
+        if region:
+            try:
+                response = httpx.get(f"http://localhost:8000/search_events?region={region}")
+                if response.status_code == 200:
+                    events = response.json()["events"]
+                    # For demonstration, update a text control with the events data
+                    events_text.value = f"Events in {region}: {events}"
+                else:
+                    events_text.value = f"No events found for {region}"
+            except Exception as ex:
+                events_text.value = f"Error: {ex}"
+            page.update()
+
+    # Retrieve regions from your server database (populated in server.py, :contentReference[oaicite:1]{index=1})
+    regions = get_regions()
+    # Create a dropdown using the retrieved regions
+    region_dropdown = ft.Dropdown(
+        options=[ft.dropdown.Option(region) for region in regions],
+        hint_text="Select Location",
+        expand=True,
+        on_change=search_events,  # triggers the search when a region is selected
+        border_color="white"
+    )
+
     header = ft.Row(
         controls=[
             ft.Container(width=15),
@@ -132,48 +169,21 @@ def main(page: ft.Page):
                             expand=True,
                             text_style=ft.TextStyle(size=18, color="white"),
                             border_radius=20,
-                            border_color="#B46617"
+                            border_color="white"
                         ),
                         ft.VerticalDivider(width=1, color="white"),
                         ft.Icon(name=ft.Icons.LOCATION_ON, color="white", size=30),
-                        ft.TextField(
-                            hint_text="Select Location",
-                            border=None,
-                            expand=True,
-                            text_style=ft.TextStyle(size=18, color="white"),
-                            border_radius=20,
-                            border_color="#B46617"
-                        ),
+                        # Use the dropdown in place of the TextField
+                        region_dropdown,
                     ],
                     alignment=ft.MainAxisAlignment.SPACE_BETWEEN
                 ),
                 border_radius=15,
-                border=ft.border.all(1, "#B46617"),
+                border=ft.border.all(1, "white"),
                 padding=ft.padding.symmetric(horizontal=15, vertical=10),
                 expand=True,
                 bgcolor="#105743",
                 margin=ft.margin.only(top=16, bottom=16, right=30)
-            ),
-            ft.VerticalDivider(width=1, color="white", leading_indent=30, trailing_indent=30),
-            # Shop Button
-            ft.Container(
-                tooltip=None,
-                content=ft.TextButton(
-                    text="Shop",
-                    on_click=lambda e: print("Shop clicked"),
-                    style=ft.ButtonStyle(
-                        bgcolor=ft.Colors.TRANSPARENT,
-                        overlay_color=ft.Colors.TRANSPARENT,
-                        elevation=0,
-                        color="white",
-                        text_style=ft.TextStyle(
-                            size=20,
-                            weight=ft.FontWeight.BOLD,
-                            letter_spacing=2
-                        )
-                    )
-                ),
-                margin=ft.margin.only(left=30, right=30)
             ),
             ft.VerticalDivider(width=1, color="white", leading_indent=30, trailing_indent=30),
             # Events Popup Menu
@@ -198,25 +208,20 @@ def main(page: ft.Page):
                     menu_position=ft.PopupMenuPosition.UNDER,
                     items=[
                         ft.PopupMenuItem(
-                            content=ft.Row(
-                                controls=[
-                                    ft.Icon(name=ft.Icons.CALENDAR_TODAY, color="white", size=15),
-                                    ft.Text("My Events", style=ft.TextStyle(color="white", size=15))
-                                ],
-                                spacing=5
-                            ),
-                            on_click=lambda e: print("My Events clicked")
+                            content=ft.Row([
+                                ft.Icon(name=ft.Icons.CALENDAR_TODAY, color="white", size=15),
+                                ft.Text("My Events", style=ft.TextStyle(color="white", size=15))
+                            ]),
+                            on_click=lambda e: load_my_events(page)  # Call the function to load My Events
                         ),
                         ft.PopupMenuItem(
-                            content=ft.Row(
-                                controls=[
-                                    ft.Icon(name=ft.Icons.EVENT_NOTE, color="white", size=15),
-                                    ft.Text("Create Event", style=ft.TextStyle(color="white", size=15))
-                                ],
-                                spacing=5
-                            ),
-                            on_click=lambda e: print("Create Event clicked")
+                            content=ft.Row([
+                                ft.Icon(name=ft.Icons.EVENT_NOTE, color="white", size=15),
+                                ft.Text("Create Event", style=ft.TextStyle(color="white", size=15))
+                            ]),
+                            on_click=lambda e: load_create_event(page)  # Call the function to load Create Events
                         ),
+
                         ft.PopupMenuItem(
                             content=ft.Row(
                                 controls=[
@@ -302,17 +307,18 @@ def main(page: ft.Page):
             "Upcoming Events 🎉",
             size=30,
             weight=ft.FontWeight.BOLD,
-            color="white",
+            color="#faf9f7",
             text_align=ft.TextAlign.CENTER
         ),
         alignment=ft.alignment.top_left,
-        margin=ft.margin.only(top=110, left=150),
+        margin=ft.margin.only(top=100, left=250),
         padding=20
     )
 
     # ======== FLOATING DISCOVER & SLIDER ========
 
     # 1) "Discover" text remains unchanged (you can also adjust its font size if desired)
+    # Headline text at the top of the slider
     discover_text = ft.Text(
         "Discover New Events!",
         size=30,
@@ -321,63 +327,94 @@ def main(page: ft.Page):
         text_align=ft.TextAlign.CENTER
     )
 
-    # 2) Slider images
+    # Slider images
     slider_images = [
         "images/eventsample_img1.jpg",
         "images/eventsample_img2.png",
         "images/eventsample_img3.jpg",
     ]
 
+    # Corresponding descriptions for each image
+    slider_descriptions = [
+        "Description for Image 1: A fantastic outdoor event you won't want to miss!",
+        "Description for Image 2: Join us and help the people in need!",
+        "Description for Image 3: Volunteer opportunities to make a positive impact!",
+    ]
+
+    # Create an AnimatedSwitcher for the images
     animated_slider = ft.AnimatedSwitcher(
-        duration=500,  # Duration in milliseconds
-        content=ft.Image(src=slider_images[0], width=400, fit=ft.ImageFit.FIT_WIDTH)
+        transition=ft.AnimatedSwitcherTransition.FADE,
+        duration=1000,
+        content=ft.Image(
+            src=slider_images[0],
+            width=600,
+            height=300,
+            fit=ft.ImageFit.FIT_WIDTH,
+            border_radius=20
+        )
     )
 
+    # Create a second AnimatedSwitcher for the text descriptions
+    animated_text = ft.AnimatedSwitcher(
+        transition=ft.AnimatedSwitcherTransition.FADE,
+        duration=1000,
+        content=ft.Text(
+            slider_descriptions[0],
+            color="white",
+            size=14,
+            text_align=ft.TextAlign.CENTER
+        )
+    )
+
+    # Loop that periodically switches both the image and the description
     def slider_loop():
         current_index = 0
         while True:
-            time.sleep(8)
+            time.sleep(8)  # Wait 8 seconds before switching
             current_index = (current_index + 1) % len(slider_images)
+            # Update the image
             animated_slider.content = ft.Image(
                 src=slider_images[current_index],
                 width=600,
                 height=300,
-                fit=ft.ImageFit.FIT_WIDTH
+                fit=ft.ImageFit.FIT_WIDTH,
+                border_radius=20
+            )
+            # Update the text
+            animated_text.content = ft.Text(
+                slider_descriptions[current_index],
+                color="white",
+                size=14,
+                text_align=ft.TextAlign.CENTER
             )
             page.update()
 
+    # Start the slider in a background thread
     threading.Thread(target=slider_loop, daemon=True).start()
 
-    # slider_image_container = ft.Container(
-    #     content=animated_slider,
-    #     width=420,  # Reduced width
-    #     border=ft.border.all(5, "#FFBA00"),
-    #     border_radius=10,
-    #     margin=ft.margin.only(top=20)
-    # )
-
-    # 3) Floating container content (text + slider)
+    # Combine the "Discover" text, the image, and the description in one column
     floating_slider_content = ft.Container(
-        width=420,                # Reduced overall width
-        bgcolor="#1D572C",        # Example background color
+        width=420,                # Adjust width to suit your design
+        height=page.height *1.5,
+        bgcolor="#1D572C",
         border_radius=20,
         padding=15,
         content=ft.Column(
             controls=[
                 discover_text,
-                animated_slider
+                animated_slider,
+                animated_text
             ],
             spacing=15,
-            alignment=ft.alignment.top_center
-        )
+            alignment=ft.alignment.top_center,
+        ),
     )
 
-
-    # 4) Outer container to position on the right
+    # Place the slider container on the right side of the screen
     floating_slider_container = ft.Container(
         content=floating_slider_content,
         alignment=ft.alignment.center_right,
-        margin=ft.margin.only(right=20, top=110,bottom=10)
+        margin=ft.margin.only(right=20, top=120, bottom=10),
     )
 
     # ======== END FLOATING DISCOVER & SLIDER ========
@@ -389,122 +426,77 @@ def main(page: ft.Page):
     )
 
     # ----------------- Category Icons Section -----------------
+     # Text control to display which category was clicked
+    selected_category_text = ft.Text("Selected Category: None", size=20, color="white")
+
+    # Click handler: updates the visible text and prints to console
+    def handle_category_click(e, category_label: str):
+        selected_category_text.value = f"Selected Category: {category_label}"
+        page.update()
+        print(f"{category_label} clicked!")
+
+    # Helper function: returns a clickable row with an icon and label
+    def category_row(icon_name: str, label: str):
+        return ft.Container(
+            content=ft.Row(
+                controls=[
+                    ft.Icon(name=icon_name, color="white", size=20),
+                    ft.Text(label, color="white", size=16),
+                ],
+                spacing=10,
+                alignment=ft.MainAxisAlignment.START
+            ),
+            padding=ft.padding.all(5),
+            on_click=lambda e: handle_category_click(e, label),
+            ink=True,  # adds a ripple effect when clicked
+            border_radius=ft.border_radius.all(5),
+        )
+
+    # Header texts for the sidebar
+    filters_text = ft.Text("Filters", color="white", size=20, weight=ft.FontWeight.BOLD)
+    category_text = ft.Text("Category", color="white", size=16, weight=ft.FontWeight.W_600)
+
+    # Build the list of category items
     category_buttons = ft.Column(
         controls=[
-            ft.Container(
-                content=ft.IconButton(
-                    icon=ft.Icons.MUSIC_NOTE,
-                    icon_color="white",
-                    on_click=lambda e: print("Music clicked"),
-                    icon_size=23
-                ),
-                border=ft.border.all(1, "white"),
-                border_radius=ft.border_radius.all(20),
-                padding=8,
-                margin=ft.margin.symmetric(vertical=4),
-                scale=0.9
-            ),
-            ft.Container(
-                content=ft.IconButton(
-                    icon=ft.Icons.LOCAL_BAR,
-                    icon_color="white",
-                    on_click=lambda e: print("Nightlife clicked"),
-                    icon_size=23
-                ),
-                border=ft.border.all(1, "white"),
-                border_radius=ft.border_radius.all(20),
-                padding=8,
-                margin=ft.margin.symmetric(vertical=4),
-                scale=0.9
-            ),
-            ft.Container(
-                content=ft.IconButton(
-                    icon=ft.Icons.THEATER_COMEDY,
-                    icon_color="white",
-                    on_click=lambda e: print("Performing & Visual Arts clicked"),
-                    icon_size=23
-                ),
-                border=ft.border.all(1, "white"),
-                border_radius=ft.border_radius.all(20),
-                padding=8,
-                margin=ft.margin.symmetric(vertical=4),
-                scale=0.9
-            ),
-            ft.Container(
-                content=ft.IconButton(
-                    icon=ft.Icons.BEACH_ACCESS,
-                    icon_color="white",
-                    on_click=lambda e: print("Holidays clicked"),
-                    icon_size=23
-                ),
-                border=ft.border.all(1, "white"),
-                border_radius=ft.border_radius.all(20),
-                padding=8,
-                margin=ft.margin.symmetric(vertical=4),
-                scale=0.9
-            ),
-            ft.Container(
-                content=ft.IconButton(
-                    icon=ft.Icons.PALETTE,
-                    icon_color="white",
-                    on_click=lambda e: print("Hobbies clicked"),
-                    icon_size=23
-                ),
-                border=ft.border.all(1, "white"),
-                border_radius=ft.border_radius.all(20),
-                padding=8,
-                margin=ft.margin.symmetric(vertical=4),
-                scale=0.9
-            ),
-            ft.Container(
-                content=ft.IconButton(
-                    icon=ft.Icons.BUSINESS_CENTER,
-                    icon_color="white",
-                    on_click=lambda e: print("Business clicked"),
-                    icon_size=23
-                ),
-                border=ft.border.all(1, "white"),
-                border_radius=ft.border_radius.all(20),
-                padding=8,
-                margin=ft.margin.symmetric(vertical=4),
-                scale=0.9
-            ),
-            ft.Container(
-                content=ft.IconButton(
-                    icon=ft.Icons.RESTAURANT,
-                    icon_color="white",
-                    on_click=lambda e: print("Food & Drink clicked"),
-                    icon_size=23
-                ),
-                border=ft.border.all(1, "white"),
-                border_radius=ft.border_radius.all(20),
-                padding=8,
-                margin=ft.margin.symmetric(vertical=4),
-                scale=0.9
-            ),
+            filters_text,
+            category_text,
+            category_row(ft.Icons.BUSINESS_CENTER, "Business"),
+            category_row(ft.Icons.RESTAURANT, "Food & Drink"),
+            category_row(ft.Icons.CHILD_CARE, "Family & Education"),
+            category_row(ft.Icons.HEALTH_AND_SAFETY, "Health"),
+            category_row(ft.Icons.DIRECTIONS_BOAT, "Travel"),
+            category_row(ft.Icons.MUSIC_NOTE, "Music"),
+            category_row(ft.Icons.THEATER_COMEDY, "Performing Arts"),
+            category_row(ft.Icons.STYLE, "Fashion"),
+            category_row(ft.Icons.MOVIE, "Film & Media"),
+            category_row(ft.Icons.COLOR_LENS, "Hobbies"),
+            category_row(ft.Icons.HOME, "Home & Lifestyle"),
+            category_row(ft.Icons.GROUP, "Community"),
+            category_row(ft.Icons.VOLUNTEER_ACTIVISM, "Charity & Causes"),
+            category_row(ft.Icons.ACCOUNT_BALANCE, "Government"),
         ],
-        alignment=ft.MainAxisAlignment.CENTER,
-        spacing=30
+        spacing=15,
+        alignment=ft.MainAxisAlignment.START
     )
 
+    # Create the sidebar container
     side_taskbar = ft.Container(
         content=ft.Container(
             content=category_buttons,
-            width=95,
-            height=page.height * 1,
-            bgcolor="#5a7051",
-            alignment=ft.alignment.center_left,
-            padding=20,
-            border_radius=50
+            width=245,             # adjust as needed
+            bgcolor="#1d572c",     # your desired sidebar color
+            alignment=ft.alignment.top_left,
+            padding=20
         ),
-        expand=True,
-        alignment=ft.alignment.center_left,
-        margin=ft.margin.only(left=30,top=100)
+        alignment=ft.alignment.top_left,
+        margin=ft.margin.only(top=100)
     )
+
     event1_highlight = ft.Container(
         content=ft.Container(
-            width=450,
-            height=320,
+            width=410,
+            height=340,
             bgcolor="#a63b0a",
             alignment=ft.alignment.top_center,
             padding=20,
@@ -512,13 +504,13 @@ def main(page: ft.Page):
         ),
         expand=True,
         alignment=ft.alignment.top_center,
-        margin=ft.margin.only(top=190, right=770)
+        margin=ft.margin.only(top=178, right=620)
     )
 
     event2_highlight = ft.Container(
         content=ft.Container(
-            width=450,
-            height=320,
+            width=410,
+            height=340,
             bgcolor="#a6750a",
             alignment=ft.alignment.center,
             padding=20,
@@ -526,13 +518,13 @@ def main(page: ft.Page):
         ),
         expand=True,
         alignment=ft.alignment.top_center,
-        margin=ft.margin.only(top=190, right= -150)
+        margin=ft.margin.only(top=178, right= -220)
     )
 
     event3_highlight = ft.Container(
         content=ft.Container(
-            width=450,
-            height=320,
+            width=410,
+            height=340,
             bgcolor="#0a9135",
             alignment=ft.alignment.center,
             padding=20,
@@ -540,13 +532,13 @@ def main(page: ft.Page):
         ),
         expand=True,
         alignment=ft.alignment.top_center,
-        margin=ft.margin.only(top=520, right=770)
+        margin=ft.margin.only(top=530, right=620)
     )
 
     event4_highlight = ft.Container(
         content=ft.Container(
-            width=450,
-            height=320,
+            width=410,
+            height=340,
             bgcolor="#b6dbf2",
             alignment=ft.alignment.center,
             padding=20,
@@ -554,7 +546,7 @@ def main(page: ft.Page):
         ),
         expand=True,
         alignment=ft.alignment.top_center,
-        margin=ft.margin.only(top=520, right=-150)
+        margin=ft.margin.only(top=530, right=-220)
     )
 
     # Place the floating slider LAST so it appears on top
@@ -565,18 +557,13 @@ def main(page: ft.Page):
             event2_highlight,
             event3_highlight,
             event4_highlight,
-            floating_slider_container,  # floats above the homepage content
-            side_taskbar,
-            # Add the taskbar as the last element with absolute positioning:
-            ft.Container(
-                content=taskbar,
-                alignment=ft.alignment.top_center,
-                expand=True,
-                padding=ft.padding.only(top=0)  # adjust if needed
-            )
+            floating_slider_container,
+            taskbar,
+            side_taskbar,  # Move the sidebar to the last element so it's on top
         ],
         expand=True,
     )
+
 
     page.controls.clear()
     page.add(main_stack)
@@ -590,6 +577,19 @@ def load_homepage(page):
 def load_login(page):
     page.floating_action_button = None
     pass
+
+def load_my_events(page):
+    import my_events
+    page.controls.clear()
+    my_events.load_my_events(page)  # Calls the function without restarting the app
+    page.update()
+
+def load_create_event(page):
+    import CreateEvents
+    page.controls.clear()
+    CreateEvents.load_create_event(page)  # Calls the function without re-running ft.app()
+    page.update()
+
 
 def load_profile(page):
     page.floating_action_button = None
