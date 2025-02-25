@@ -8,7 +8,9 @@ from flet import (
     ElevatedButton,
     Image,
     Dropdown,
-    border_radius
+    border_radius,
+    Alignment
+
 )
 import datetime
 import httpx  # Import httpx
@@ -168,7 +170,7 @@ def main(page: ft.Page):
         padding=20,
         border_radius=border_radius.all(10),
         alignment=ft.alignment.center,
-        height=page.height * 0.5
+        height=page.height * 0.9
     )
 
     # Left container (image)
@@ -191,36 +193,33 @@ def main(page: ft.Page):
         alignment=ft.MainAxisAlignment.CENTER
     )
 
-    # Optional: wrap row in a fixed-width container if you prefer
-    # main_content = Container(
-    #     content=main_row,
-    #     width=950,  # or any suitable width
-    #     alignment=ft.alignment.center
-    # )
-
     # We'll just center the row itself in the stack
     main_content = main_row
 
     # --- Final Layout with a Stack ---
     # 1) Pin back_button in top-left
     # 2) Center main_content in the remaining space
-    final_layout = ft.Stack(
-    controls=[
-        # Centered main content first (behind)
-        Container(
-            content=main_content,
-            alignment=ft.alignment.center,
-            expand=True
-        ),
-        # Top-left button second (on top)
-        Container(
-            content=back_button,
-            alignment=ft.alignment.top_left,
-            margin=ft.margin.all(20)
-        ),
-    ],
-    expand=True
-)
+    final_layout = Column(
+        controls=[
+            # Centered main content
+            Container(
+                
+
+                content = back_button,
+                alignment = ft.alignment.top_left,
+                padding=ft.padding.only(left=20, top=20), 
+                expand= False
+            ),
+            # Top-left back button
+            Container(
+                content=main_content,
+                alignment=ft.alignment.center,
+                expand=True
+
+            ),
+        ],
+        expand=True
+    )
 
     page.controls.clear()
     page.add(final_layout)
@@ -228,3 +227,6 @@ def main(page: ft.Page):
 
 def load_create_event(page):
     main(page)
+
+if __name__ == "__main__":
+    ft.app(target=main)
