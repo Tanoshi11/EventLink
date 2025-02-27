@@ -142,7 +142,7 @@ def load_login(page: ft.Page):
     # Build Logo Container
     # --------------------
     logo_image = ft.Image(
-        src="eventlink.png",  
+        src="images/eventlink.png",  
         width=500,
         height=500,
         fit=ft.ImageFit.CONTAIN

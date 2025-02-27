@@ -2,16 +2,20 @@ import flet as ft
 import httpx
 from datetime import datetime
 
-def main(page: ft.Page):
+def load_my_events(page: ft.Page):
+    # Clear existing controls
+    page.controls.clear()
     page.title = "My Events"
     page.bgcolor = "#0C3B2E"
     
+    # Example function to fetch events from your API (adjust endpoint as needed)
     def fetch_events():
         try:
             response = httpx.get("http://127.0.0.1:8000/my_events")
             response.raise_for_status()
             return response.json()
         except Exception as ex:
+            print("Error fetching events:", ex)
             return []
     
     events = fetch_events()
@@ -30,7 +34,7 @@ def main(page: ft.Page):
         else:
             upcoming_events.append(ft.Text(event['title'], size=18, color="lightgreen"))
     
-    # Header (Navigation Bar)
+    # Header for My Events page
     header = ft.Container(
         content=ft.Row([
             ft.Text("My Events", size=30, weight=ft.FontWeight.BOLD, color="white")
@@ -39,7 +43,7 @@ def main(page: ft.Page):
         padding=10
     )
     
-    # Events List
+    # Section to display events
     events_section = ft.Container(
         content=ft.Column([
             ft.Text("Past Events", size=22, weight=ft.FontWeight.BOLD, color="red"),
@@ -52,13 +56,17 @@ def main(page: ft.Page):
         padding=20
     )
     
-    # Footer Button
+    # Back button with local import to avoid circular dependency
+    def go_back(e):
+        from homepg import load_homepage  # local import here
+        load_homepage(page)
+    
     footer_button = ft.Container(
         content=ft.ElevatedButton(
             text="Back to Home",
-            bgcolor="#6D9773",
+            bgcolor=ft.Colors.TRANSPARENT,
             color="white",
-            on_click=lambda _: print("Back to home clicked"),
+            on_click=go_back,
             style=ft.ButtonStyle(
                 padding=ft.padding.symmetric(vertical=15, horizontal=30),
                 text_style=ft.TextStyle(size=20, weight=ft.FontWeight.BOLD)
@@ -68,7 +76,6 @@ def main(page: ft.Page):
         padding=20
     )
     
-    # Main Layout
     my_events_view = ft.Column(
         controls=[
             header,
@@ -84,4 +91,4 @@ def main(page: ft.Page):
     page.update()
 
 if __name__ == "__main__":
-    ft.app(target=main)
+    ft.app(target=load_my_events)
