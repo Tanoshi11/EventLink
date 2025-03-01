@@ -2,11 +2,15 @@ import flet as ft
 import time
 import threading
 import httpx
+from search import load_search
 
 # Global variable to store the notification popup overlay
 notif_popup = None
+events_text = ft.Text("", color="white")
 
 def main(page: ft.Page):
+    if page.data is None:
+        page.data = {}
     page.title = "Home"
     page.bgcolor = "#d6aa54"
     page.padding = 0  # Ensure no extra padding at the edges
@@ -22,7 +26,7 @@ def main(page: ft.Page):
 
     def show_profile_page(e):
         def delayed_profile():
-            time.sleep(2)
+            time.sleep(1)
             import user_profile
             user_profile.show_profile(page)
         threading.Thread(target=delayed_profile).start()
@@ -36,72 +40,102 @@ def main(page: ft.Page):
 
     def show_notifications(e):
         global notif_popup
-        notifications = [f"Notification {i}: Event Update" for i in range(1, 101)]
 
-        def on_click_event(event_text):
-            print(f"Event clicked: {event_text}")
+        # Ensure page.data is a dict
+        if page.data is None:
+            page.data = {}
 
+        # Get the username
+        username = page.data.get("username", None)
+        if not username:
+            print("No username found in page data! User might not be logged in.")
+            return
+
+        # Fetch notifications from server
+        try:
+            response = httpx.get(f"http://localhost:8000/notifications?username={username}")
+            if response.status_code == 200:
+                notifications_data = response.json()["notifications"]
+            else:
+                notifications_data = [{"message": "No notifications found."}]
+        except Exception as ex:
+            print("Error fetching notifications:", ex)
+            notifications_data = [{"message": "Error fetching notifications."}]
+
+        # Build notification items
         notif_controls = []
-        for notif in notifications:
+        for notif in notifications_data:
             notif_controls.append(
                 ft.Container(
-                    content=ft.Row(
-                        controls=[ft.Text(notif, size=18, color="white", weight=ft.FontWeight.BOLD)],
-                        alignment=ft.MainAxisAlignment.START
+                    content=ft.Text(
+                        notif["message"],
+                        size=18,
+                        color="white",
+                        weight=ft.FontWeight.BOLD,
+                        no_wrap=False  # Allow text to wrap to multiple lines
                     ),
                     padding=ft.padding.symmetric(horizontal=15, vertical=15),
                     bgcolor="#4C7043",
                     border_radius=10,
                     margin=ft.margin.only(bottom=10),
-                    on_click=lambda e, notif_text=notif: on_click_event(notif_text),
+                    on_click=lambda e, msg=notif["message"]: print(f"Notification clicked: {msg}"),
                 )
             )
 
+        # Close button
         close_button = ft.IconButton(
             icon=ft.Icons.CLOSE,
             on_click=close_notifications,
             icon_color="white",
             icon_size=30,
+            style=ft.ButtonStyle(overlay_color=ft.colors.TRANSPARENT),
             tooltip=None,
-            width=30,
-            height=30,
-            alignment=ft.alignment.top_right,
-            style=ft.ButtonStyle(overlay_color=ft.colors.TRANSPARENT)
+            alignment=ft.alignment.top_right
         )
 
+        # Scrollable ListView for notifications
         list_view = ft.ListView(
             controls=notif_controls,
-            height=300,
-            expand=True,
+            expand=True,      # Fill remaining space
+            auto_scroll=False # Keep a scroll bar if items exceed the container's height
         )
 
-        inner_popup_height = 400
+        # Create a column with the close button on top and the scrollable list beneath
+        content_column = ft.Column(
+            controls=[
+                close_button,
+                list_view
+            ],
+            spacing=10,
+            expand=True
+        )
 
+        # The main popup container
         inner_popup = ft.Container(
-            content=ft.Column(
-                controls=[close_button, list_view],
-                spacing=20,
-            ),
+            content=content_column,
+            width=400,          # Keep it narrow enough for easy reading
+            height=300,         # Short container height
             bgcolor="#6D9773",
             padding=10,
             border_radius=10,
-            width=400,
-            height=inner_popup_height,
             shadow=ft.BoxShadow(blur_radius=10, color="gray", offset=ft.Offset(2, 2)),
             on_click=lambda e: e.stop_propagation() if hasattr(e, "stop_propagation") else None,
         )
 
+        # Wrap in an AnimatedSwitcher for a nice show/hide transition
         notif_popup = ft.AnimatedSwitcher(
-            duration=500,  # Duration in milliseconds
+            duration=500,
             content=ft.Container(
                 alignment=ft.alignment.top_right,
-                padding=ft.padding.only(top=100, bottom=300, right=15),
+                padding=ft.padding.only(top=100, right=15),
                 content=inner_popup,
             ),
         )
 
         page.overlay.append(notif_popup)
         page.update()
+
+
 
     def close_notifications(e):
         global notif_popup
@@ -113,6 +147,12 @@ def main(page: ft.Page):
     def handle_click_outside(e):
         if notif_popup and notif_popup in page.overlay:
             close_notifications(e)
+    
+    def store_previous_page_context(page: ft.Page, previous_page: str):
+        """Store the previous page context in page.data."""
+        if page.data is None:
+            page.data = {"username": user.username}
+        page.data["previous_page"] = previous_page
 
     # ----------------- Taskbar (Header) -----------------
     def get_regions():
@@ -169,7 +209,8 @@ def main(page: ft.Page):
                             expand=True,
                             text_style=ft.TextStyle(size=18, color="white"),
                             border_radius=20,
-                            border_color="white"
+                            border_color="white",
+                            on_submit=lambda e: load_search(page, e.control.value.strip() or "All", search_type="global")
                         ),
                         ft.VerticalDivider(width=1, color="white"),
                         ft.Icon(name=ft.Icons.LOCATION_ON, color="white", size=30),
@@ -431,9 +472,10 @@ def main(page: ft.Page):
 
     # Click handler: updates the visible text and prints to console
     def handle_category_click(e, category_label: str):
-        selected_category_text.value = f"Selected Category: {category_label}"
-        page.update()
-        print(f"{category_label} clicked!")
+        load_search(page, query=category_label, search_type="category")
+        print(f"{category_label} quick search triggered!")
+
+
 
     # Helper function: returns a clickable row with an icon and label
     def category_row(icon_name: str, label: str):
