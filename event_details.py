@@ -3,6 +3,7 @@ import httpx
 import threading
 import time
 from search import load_search
+from header import load_header
 
 def load_event_details(page: ft.Page, event: dict, search_context: dict):
     """
@@ -225,13 +226,7 @@ def load_event_details(page: ft.Page, event: dict, search_context: dict):
         ]
     )
 
-    taskbar = ft.Container(
-        content=header,
-        height=100,
-        bgcolor="#0C3B2E",
-        alignment=ft.alignment.center,
-        padding=ft.padding.symmetric(horizontal=10)
-    )
+    taskbar = load_header(page)
 
     # ----------------- Sidebar (Categories) -----------------
     def handle_category_click(e, category_label: str):

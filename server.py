@@ -2,8 +2,10 @@ from fastapi import FastAPI, HTTPException, Query
 from pydantic import BaseModel, EmailStr
 from pymongo import MongoClient
 import bcrypt
+import re
 from datetime import datetime
 from typing import Optional
+
 
 app = FastAPI()
 
@@ -46,11 +48,15 @@ def search_events(query: str = Query(...), region: str = None):
     - Otherwise, search events where the name or description contains the query (case-insensitive),
       and if region is provided, also filter by location.
     """
+    print(f"Searching events - Query: '{query}', Region: '{region}'")  # Debugging
+
     # If the query is "All", ignore text filtering.
     if query.lower() == "all":
         if region:
+            # Escape special characters in the region for regex
+            escaped_region = re.escape(region)
             events = list(events_collection.find(
-                {"location": {"$regex": region, "$options": "i"}},
+                {"location": {"$regex": escaped_region, "$options": "i"}},
                 {"_id": 0}
             ))
         else:
@@ -64,9 +70,12 @@ def search_events(query: str = Query(...), region: str = None):
             ]
         }
         if region:
-            filter_query["location"] = {"$regex": region, "$options": "i"}
+            # Escape special characters in the region for regex
+            escaped_region = re.escape(region)
+            filter_query["location"] = {"$regex": escaped_region, "$options": "i"}
         events = list(events_collection.find(filter_query, {"_id": 0}))
 
+    print(f"Found {len(events)} events.")  # Debugging
     if not events:
         raise HTTPException(status_code=404, detail="No events found matching the criteria.")
     return {"events": events}
