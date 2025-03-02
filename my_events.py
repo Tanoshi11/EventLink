@@ -1,12 +1,24 @@
 import flet as ft
 import httpx
-from datetime import datetime, timedelta
+from datetime import datetime
+
+# Define theme colors
+PRIMARY_COLOR = "#6d9773"       # Accent green
+SECONDARY_COLOR = "#0c3b2e"     # Dark green (used for headers/forms)
+ACCENT_COLOR = "#b46617"        # Warm accent (for text or titles)
+HIGHLIGHT_COLOR = "#ffba00"     # Highlight yellow
+WHITE = "#ffffff"
+DARK_RED = "#8B0000"
+MUSTARD_YELLOW = "#B8860B"
+GREEN = "#008000"
 
 def load_my_events(page: ft.Page):
+    
     page.title = "My Events"
-    page.bgcolor = "#0C3B2E"
+    page.bgcolor = SECONDARY_COLOR
     page.padding = 20
 
+    # Fetch events from API
     def fetch_events():
         try:
             response = httpx.get("http://127.0.0.1:8000/my_events")
@@ -18,128 +30,94 @@ def load_my_events(page: ft.Page):
 
     events = fetch_events()
     current_date = datetime.now().date()
-    past_events, current_events, upcoming_events = [], [], []
-    event_dates = {datetime.strptime(event["date"], "%Y-%m-%d").date(): event["title"] for event in events}
 
-    for event_date, title in event_dates.items():
-        event_text = ft.Text(title, size=16, weight=ft.FontWeight.MEDIUM)
-        event_container = ft.Container(
-            content=ft.ListTile(title=event_text, bgcolor="#4F4F4F"),
-            border_radius=10,
-            padding=5
-        )
+    past_events, current_events, upcoming_events = [], [], []
+
+    for event in events:
+        event_date = datetime.strptime(event["date"], "%Y-%m-%d").date()
+        event_text = ft.Text(event['title'], size=16, color=WHITE, weight=ft.FontWeight.BOLD)
 
         if event_date < current_date:
-            past_events.append(event_container)
+            past_events.append(event_text)
         elif event_date == current_date:
-            event_container.content.bgcolor = "#FFD700"
-            current_events.append(event_container)
+            current_events.append(event_text)
         else:
-            event_container.content.bgcolor = "#32CD32"
-            upcoming_events.append(event_container)
+            upcoming_events.append(event_text)
 
-    def create_event_section(title, events_list, color):
-        return ft.Column([
-            ft.Text(title, size=18, weight=ft.FontWeight.BOLD, color=color),
-            ft.Column(events_list if events_list else [ft.Text("No events", color="gray")], spacing=5)
-        ], spacing=10)
-
-    sidebar = ft.Container(
-        content=ft.Column([
-            ft.Text("My Events", size=22, weight=ft.FontWeight.BOLD, color="white"),
-            ft.Divider(height=5, color="gray"),
-            ft.Text("Event Categories", size=16, weight=ft.FontWeight.BOLD, color="white"),
-            ft.Container(content=ft.ListTile(title=ft.Text("Past Events")), bgcolor="#4F4F4F", border_radius=10, padding=5),
-            ft.Container(content=ft.ListTile(title=ft.Text("Current Events")), bgcolor="#FFD700", border_radius=10, padding=5),
-            ft.Container(content=ft.ListTile(title=ft.Text("Upcoming Events")), bgcolor="#32CD32", border_radius=10, padding=5)
-        ], spacing=10),
-        width=250,
-        bgcolor="#1E4D3D",
-        padding=15,
-        border_radius=12
+    # Header 
+    header = ft.Container(
+        content=ft.Row([
+            ft.Text("My Events", size=30, weight=ft.FontWeight.BOLD, color=SECONDARY_COLOR, expand=True),
+            ft.IconButton(icon=ft.icons.HOME, icon_color=SECONDARY_COLOR, icon_size=30, on_click=lambda e: go_back(e, page),),
+        ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
+        bgcolor=WHITE,
+        padding=20,
+        border_radius=30
     )
 
-    def show_selected_date(date):
-        if date in event_dates:
-            page.dialog = ft.AlertDialog(title=ft.Text(f"Event on {date}: {event_dates[date]}"))
-            page.dialog.open = True
-            page.update()
-
-    def create_calendar():
-        today = datetime.now().date()
-        first_day = today.replace(day=1)
-        start_weekday = first_day.weekday()
-        days_in_month = (first_day.replace(month=first_day.month % 12 + 1, day=1) - timedelta(days=1)).day
-        
-        dates = []
-        for i in range(start_weekday):
-            dates.append(ft.Container())
-        for day in range(1, days_in_month + 1):
-            date = first_day.replace(day=day)
-            event_indicator = "🔴" if date in event_dates else ""
-            dates.append(
-                ft.Container(
-                    content=ft.Text(f"{day}{event_indicator}", size=16, weight=ft.FontWeight.BOLD, color="white"),
-                    alignment=ft.alignment.center,
-                    padding=10,
-                    bgcolor="#2C6D4F" if date in event_dates else "#1E4D3D",
-                    border_radius=5,
-                    on_click=lambda e, d=date: show_selected_date(d)
-                )
-            )
-        
-        return ft.GridView(
-            runs_count=7,
-            controls=dates,
-            spacing=5,
-            run_spacing=5
-        )
+    def go_back(e, page):
+        import homepg
+        page.controls.clear()
+        homepg.main(page)
+        page.update()
     
-    calendar_section = ft.Column([
-        ft.Text("Calendar", size=18, weight=ft.FontWeight.BOLD, color="white"),
-        create_calendar()
-    ], spacing=10)
+    # Event Card Function 
+    def event_section(title, events, bg_color):
+        return ft.Container(
+            content=ft.Column([
+                ft.Text(title, size=18, weight=ft.FontWeight.BOLD, color=WHITE),
+                ft.Column(events if events else [ft.Text("No events", color=WHITE)]),
+            ], spacing=10),
+            bgcolor=bg_color,
+            border_radius=15,
+            padding=15,
+            expand=True
+        )
 
-    main_content = ft.Column([
-        ft.Text("Good Afternoon.\nWhat's your plan for today?", size=24, weight=ft.FontWeight.BOLD, color="white"),
-        create_event_section("Past Events", past_events, "#FF6347"),
-        create_event_section("Current Events", current_events, "#FFD700"),
-        create_event_section("Upcoming Events", upcoming_events, "#32CD32")
-    ], spacing=15, expand=True)
-
-    sidebar_layout = ft.Row([
-        sidebar,
-        ft.VerticalDivider(width=5, color="gray"),
-        main_content,
-        ft.VerticalDivider(width=5, color="gray"),
-        calendar_section
-    ], expand=True)
-
-    def go_back(e):
-        from homepg import load_homepage
-        load_homepage(page)
-
-    footer_button = ft.Container(
-        content=ft.ElevatedButton(
-            text="Back to Home",
-            bgcolor="#FFD700",
-            color="black",
-            on_click=go_back,
-            style=ft.ButtonStyle(
-                padding=ft.padding.symmetric(vertical=10, horizontal=20),
-                text_style=ft.TextStyle(size=16, weight=ft.FontWeight.BOLD),
-                shape=ft.RoundedRectangleBorder(radius=8),
-            ),
-        ),
-        alignment=ft.alignment.center,
-        padding=10
+    # Event Sections
+    event_container = ft.Container(
+        content=ft.Column([
+            ft.Row([  
+                event_section("Current Events", current_events, GREEN),
+            ], spacing=10, expand=True),
+            ft.Row([
+                event_section("Upcoming Events", upcoming_events, MUSTARD_YELLOW),
+                event_section("Past Events", past_events, DARK_RED),
+            ], spacing=10, expand=True)
+        ], spacing=10),
+        bgcolor=WHITE,
+        border_radius=15,
+        padding=15,
+        expand=True
     )
 
-    page.controls.clear()
-    page.add(ft.Column([
-        sidebar_layout,
-        footer_button
-    ], alignment=ft.MainAxisAlignment.START, expand=True))
+    CONTAINER_WIDTH = 350  
+
+# Calendar Section
+    calendar = ft.Container(
+        content=ft.Text("📅 Calendar (Placeholder)", size=18, weight=ft.FontWeight.BOLD, color="black"),
+        bgcolor=WHITE,
+        padding=15,
+        border_radius=15,
+        width=CONTAINER_WIDTH  
+    )
+
+# Volunteer Analytics Button
+    volunteer_button = ft.Container(
+        content=ft.Text("Volunteer Analytics", size=18, weight=ft.FontWeight.BOLD, color="black"),
+        bgcolor=WHITE,
+        padding=15,
+        border_radius=30,
+        alignment=ft.alignment.center,
+        width=CONTAINER_WIDTH  
+    )
+
+    # Layout
+    page.add(
+        header,
+        ft.Row([event_container, ft.Column([calendar, volunteer_button], spacing=15, expand=True)], spacing=15, expand=True)
+    )
+
     page.update()
 
 if __name__ == "__main__":
