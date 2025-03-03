@@ -14,8 +14,17 @@ users_collection = db["users"]
 regions_collection = db["regions"]
 events_collection = db["events"]
 notifications_collection = db["notifications"]
+myevents_collection = db["myevents"]
 
 print(list(events_collection.find({})))
+
+@app.get("/get_user")
+def get_user(username: str = Query(...)):
+    """Fetch user data by username."""
+    user = users_collection.find_one({"username": username}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return user
 
 # Updated Luzon regions list
 Luzon_regions = [
@@ -171,6 +180,44 @@ def get_my_events(username: str):
     if not events:
         raise HTTPException(404, "No joined events found")
     return {"events": events}
+
+class JoinEventRequest(BaseModel):
+    event_id: str
+    title: str
+    date: str
+    time: str
+    username: str  # Username of the user joining
+
+@app.post("/join_event")
+def join_event(request: JoinEventRequest):
+    # If username is missing, user is not logged in.
+    if not request.username:
+        raise HTTPException(status_code=401, detail="Login required to join events.")
+
+    username = request.username
+
+    # Check if the user has already joined this event.
+    existing_entry = myevents_collection.find_one({"username": username, "event_id": request.event_id})
+    if existing_entry:
+        raise HTTPException(status_code=400, detail="You have already joined this event.")
+
+    # Insert the joined event into the myevents collection.
+    myevents_collection.insert_one({
+        "username": username,
+        "event_id": request.event_id,
+        "title": request.title,
+        "date": request.date,
+        "time": request.time
+    })
+
+    return {"message": "Successfully joined the event!"}
+
+@app.get("/joined_event")
+def joined_event(username: str, event_id: str):
+    """Return whether the user has joined a given event."""
+    entry = myevents_collection.find_one({"username": username, "event_id": event_id})
+    return {"joined": bool(entry)}
+
 
 @app.get("/notifications")
 def get_notifications(username: str):

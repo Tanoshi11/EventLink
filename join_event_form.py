@@ -1,75 +1,123 @@
 import flet as ft
+import httpx
 
 def load_join_event_form(page, event_id, title, date, time, back_callback):
-    # Clear the current controls or open a modal dialog
-    page.controls.clear()
-    
-   
-    event_attend_name = ft.TextField(label="Name", width=400)
-    
-    event_ticket_tobuy = ft.TextField(label="Number of tickets", width=400, keyboard_type=ft.KeyboardType.NUMBER)
-    
+    # Check if the user is logged in by checking if username is stored in page.data.
+    username = page.data.get("username") if page.data else None
+    if not username:
+        # Redirect to login if no user is logged in.
+        import login
+        login.load_login(page)
+        return
+
+    # Create a read-only field for the user's name.
+    event_attend_name = ft.TextField(
+        label="Name",
+        width=300,
+        value=username,
+        read_only=True,
+        text_style=ft.TextStyle(color="#FDF7E3"),
+        label_style=ft.TextStyle(color="#FDF7E3"),
+        border_color="#D4A937"
+    )
+
+    event_ticket_tobuy = ft.TextField(
+        label="Number of tickets",
+        width=300,
+        text_style=ft.TextStyle(color="#FDF7E3"),
+        label_style=ft.TextStyle(color="#FDF7E3"),
+        border_color="#D4A937",
+        keyboard_type=ft.KeyboardType.NUMBER,
+        hint_text="Enter a number"
+    )
+
+    join_button = ft.ElevatedButton(
+        "Join Event",
+        bgcolor="#C77000",
+        color="white",
+        style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=10))
+    )
+
     def submit_form(e):
-        error_found = False
-        # Validate the name field.
-        if not event_attend_name.value:
-            event_attend_name.error_text = "Name is required."
-            error_found = True
-        else:
-            event_attend_name.error_text = None
-        
-        # Validate the number of tickets: must be non-empty and numeric.
-        if not event_ticket_tobuy.value:
-            event_ticket_tobuy.error_text = "Number of tickets is required."
-            error_found = True
-        elif not event_ticket_tobuy.value.isdigit():
+        if not event_ticket_tobuy.value or not event_ticket_tobuy.value.isdigit():
             event_ticket_tobuy.error_text = "Please enter a valid number."
-            error_found = True
-        else:
-            event_ticket_tobuy.error_text = None
-        
-        page.update()
-        if error_found:
+            page.update()
             return
-        
-        
-        print("Submitting join request for:", event_attend_name.value, event_ticket_tobuy.value)
-    
-    # Build the join event form with Back and Submit buttons.
+
+        # Prepare the data to send
+        data = {
+            "event_id": event_id,
+            "title": title,
+            "date": date,
+            "time": time,
+            "username": username
+        }
+
+        try:
+            response = httpx.post(
+                "http://127.0.0.1:8000/join_event",
+                json=data,
+                timeout=10.0
+            )
+            response.raise_for_status()
+
+            # Hide the join button after successful join.
+            join_button.visible = False
+            page.update()
+
+            # Show success notification.
+            page.snack_bar = ft.SnackBar(
+                content=ft.Text(f"Successfully joined {title}!"),
+                bgcolor="green"
+            )
+            page.snack_bar.open = True
+            page.update()
+
+        except httpx.HTTPStatusError as exc:
+            error_msg = exc.response.json().get("detail", "Error joining event.")
+            page.snack_bar = ft.SnackBar(
+                content=ft.Text(f"Error: {error_msg}"),
+                bgcolor="red"
+            )
+            page.snack_bar.open = True
+            page.update()
+
+    # Assign the submit_form function to the join button.
+    join_button.on_click = submit_form
+
     form = ft.Column(
         controls=[
-            ft.ElevatedButton("Back", on_click=lambda e: back_callback(page)),
-            ft.Text(f"Join Event: {title}", size=24, weight=ft.FontWeight.BOLD),
-            ft.Text(f"Date: {date}"),
-            ft.Text(f"Time: {time}"),
+            ft.Text(f"Join Event: {title}", size=24, weight=ft.FontWeight.BOLD, color="#FDF7E3"),
+            ft.Text(f"Date: {date}", color="#FDF7E3"),
+            ft.Text(f"Time: {time}", color="#FDF7E3"),
             event_attend_name,
             event_ticket_tobuy,
-            ft.ElevatedButton("Submit", on_click=submit_form),
+            ft.Row([join_button], alignment=ft.MainAxisAlignment.CENTER)  # Centered button row.
         ],
         spacing=20,
         alignment=ft.MainAxisAlignment.CENTER,
     )
-    
-    # Wrap the form in a container to center it on the page.
-    container = ft.Container(
-        content=form,
+
+    popup = ft.Container(
         alignment=ft.alignment.center,
         expand=True,
+        bgcolor="rgba(0,0,0,0.5)",  # Semi‐transparent overlay
+        content=ft.Container(
+            width=500,
+            height=480,
+            padding=ft.padding.all(20),
+            border_radius=10,
+            bgcolor="#406157",  # Matching popup background color
+            border=ft.border.all(3, "white"),
+            content=form,
+        ),
     )
-    
-    page.add(container)
+
+    page.overlay.append(popup)
     page.update()
 
-# Optional testing main function
-if __name__ == "__main__":
-    def back_callback(page):
-        page.controls.clear()
-        page.add(ft.Text("Back button pressed. Returning to previous page..."))
-        page.update()
-    
-    def main(page: ft.Page):
-        page.title = "Join the Event"
-        page.bgcolor = "#5F7755"
-        load_join_event_form(page, event_id=123, title="Test Event", date="2025-03-03", time="18:00", back_callback=back_callback)
-    
-    ft.app(target=main)
+def close_join_popup(page, back_callback):
+    if page.overlay:
+        page.overlay.pop()
+    page.update()
+    back_callback(page)
