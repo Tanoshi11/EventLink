@@ -10,16 +10,14 @@ from flet import (
     Dropdown,
     border_radius,
     Alignment
-
 )
 import datetime
-import httpx  # Import httpx
+import httpx
 
-# Define theme colors
-PRIMARY_COLOR = "#6d9773"       # Accent green
-SECONDARY_COLOR = "#0c3b2e"     # Dark green (used for headers/forms)
-ACCENT_COLOR = "#b46617"        # Warm accent (for text or titles)
-HIGHLIGHT_COLOR = "#ffba00"     # Highlight yellow
+PRIMARY_COLOR = "#6d9773"
+SECONDARY_COLOR = "#0c3b2e"
+ACCENT_COLOR = "#b46617"
+HIGHLIGHT_COLOR = "#ffba00"
 
 def fetch_regions():
     try:
@@ -57,7 +55,7 @@ def main(page: ft.Page):
     page.title = "Create Event"
     page.bgcolor = "#5F7755"
 
-    # --- Back Button (top-left) ---
+    # Back button
     back_button = ElevatedButton(
         text="Back",
         icon=ft.icons.ARROW_BACK,
@@ -66,17 +64,25 @@ def main(page: ft.Page):
         color=SECONDARY_COLOR
     )
 
-    # --- Event Form Fields ---
+    # Form fields
     event_name = TextField(label="Event Name", width=400)
     event_type = Dropdown(
         label="Event Type",
         width=400,
         options=[
+            ft.dropdown.Option("Business"),
+            ft.dropdown.Option("Food & Drink"),
+            ft.dropdown.Option("Health"),
+            ft.dropdown.Option("Travel"),
             ft.dropdown.Option("Music"),
-            ft.dropdown.Option("Art and Cultural Events"),
-            ft.dropdown.Option("Sports"),
-            ft.dropdown.Option("Workshops"),
-            ft.dropdown.Option("Seminars"),
+            ft.dropdown.Option("Performing Arts"),
+            ft.dropdown.Option("Fashion"),
+            ft.dropdown.Option("Film & Media"),
+            ft.dropdown.Option("Hobbies"),
+            ft.dropdown.Option("Home & Lifestyle"),
+            ft.dropdown.Option("Community"),
+            ft.dropdown.Option("Charity & Causes"),
+            ft.dropdown.Option("Government"),
         ]
     )
     event_date = TextField(label="Date (YYYY-MM-DD)", width=400)
@@ -135,15 +141,27 @@ def main(page: ft.Page):
         if error_found:
             return
 
-        print("Form submitted!")
-        print("Event Name:", event_name.value)
-        print("Event Type:", event_type.value)
-        print("Date:", event_date.value)
-        print("Time:", event_time.value)
-        print("Location:", event_location.value)
-        print("Description:", event_description.value)
+        # Create event data payload
+        event_data = {
+            "name": event_name.value,
+            "type": event_type.value,
+            "date": event_date.value,
+            "time": event_time.value,
+            "location": event_location.value,
+            "description": event_description.value,
+            "created_at": datetime.datetime.now().isoformat()
+        }
+        
+        try:
+            response = httpx.post("http://127.0.0.1:8000/create_event", json=event_data)
+            if response.status_code == 200:
+                print("Event created successfully!")
+            else:
+                print("Error creating event:", response.text)
+        except Exception as ex:
+            print("Exception while creating event:", ex)
+        page.update()
 
-    # Column for the form
     form_column = Column(
         controls=[
             Text("Create an Event", color="#F5E7C4", size=22, weight="bold"),
@@ -163,21 +181,18 @@ def main(page: ft.Page):
         spacing=15
     )
 
-    # Right container (dark green)
     right_container = Container(
         content=form_column,
         bgcolor=SECONDARY_COLOR,
         padding=20,
         border_radius=border_radius.all(10),
-        alignment=ft.alignment.center,
-        height=page.height * 0.9
+        alignment=ft.alignment.center
     )
 
-    # Left container (image)
     left_image = Image(
-        src="images/eventlink.png",  # Make sure this path is correct
-        width=500,
-        height=500,
+        src="images/eventlink.png",  # Ensure the image path is correct
+        width=300,
+        height=300,
         fit="contain"
     )
     left_container = Container(
@@ -186,39 +201,28 @@ def main(page: ft.Page):
         alignment=ft.alignment.center
     )
 
-    # Row with image (left) and form (right)
     main_row = Row(
         controls=[left_container, right_container],
         spacing=20,
         alignment=ft.MainAxisAlignment.CENTER
     )
 
-    # We'll just center the row itself in the stack
-    main_content = main_row
-
-    # --- Final Layout with a Stack ---
-    # 1) Pin back_button in top-left
-    # 2) Center main_content in the remaining space
+    # Final Layout: Back button at the top, main content centered below
     final_layout = Column(
         controls=[
-            # Centered main content
             Container(
-                
-
-                content = back_button,
-                alignment = ft.alignment.top_left,
-                padding=ft.padding.only(left=20, top=20), 
-                expand= False
+                content=back_button,
+                alignment=ft.alignment.top_left,
+                padding=ft.padding.all(20)
             ),
-            # Top-left back button
             Container(
-                content=main_content,
-                alignment=ft.alignment.center,
-                expand=True
-
-            ),
+                content=main_row,
+                expand=True,
+                alignment=ft.alignment.center
+            )
         ],
-        expand=True
+        expand=True,
+        horizontal_alignment=ft.CrossAxisAlignment.CENTER
     )
 
     page.controls.clear()

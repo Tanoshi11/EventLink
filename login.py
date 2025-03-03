@@ -77,7 +77,7 @@ def load_login(page: ft.Page):
             "password": login_password.value
         }
         try:
-            response = httpx.post("http://127.0.0.1:8000/login", json=user_data, timeout=10.0)
+            response = httpx.post("http://127.0.0.1:8000/login", json=user_data, timeout=20.0)
             response.raise_for_status()
             # Store the username in page.data for later use (e.g. profile view)
             page.data = {"username": login_identifier.value}
