@@ -174,6 +174,7 @@ class UserUpdate(BaseModel):
     backup_number: Optional[str] = None
     address: Optional[str] = None
     gender: Optional[str] = None
+    status: Optional[str] = None  # <-- NEW FIELD
 
 @app.patch("/update_user")
 def update_user(username: str, updates: UserUpdate):
@@ -202,10 +203,13 @@ def get_events():
 
 @app.get("/my_events")
 def get_my_events(username: str):
-    """Fetch the user's events."""
-    events = list(events_collection.find({"organizer": username}, {"_id": 0}))
+    """Fetch events the user has joined (participated in)"""
+    events = list(events_collection.find(
+        {"participants": username},  # <-- Assuming "participants" field exists
+        {"_id": 0}
+    ))
     if not events:
-        raise HTTPException(status_code=404, detail="No events found for this user.")
+        raise HTTPException(404, "No joined events found")
     return {"events": events}
 
 @app.get("/notifications")
@@ -229,6 +233,18 @@ def logout(username: str):
     """Log out the user."""
     # You can add logic to invalidate the user's session or token here
     return {"message": "Logout successful"}
+
+# Add endpoint to create notifications
+class Notification(BaseModel):
+    username: str
+    message: str
+    date: str
+
+@app.post("/create_notification")
+def create_notification(notification: Notification):
+    notifications_collection.insert_one(notification.dict())
+    return {"message": "Notification created"}
+
 
 # ----------------------- New Event Endpoint -----------------------
 

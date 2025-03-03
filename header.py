@@ -238,15 +238,16 @@ def load_header(page: ft.Page):
                             ]),
                             on_click=lambda e: __import__("CreateEvents").load_create_event(page)
                         ),
+                        # In header.py (find the "Events" PopupMenuButton)
                         ft.PopupMenuItem(
                             content=ft.Row(
                                 controls=[
-                                    ft.Icon(name=ft.Icons.SENTIMENT_SATISFIED, color="white", size=15),
-                                    ft.Text("Volunteer", style=ft.TextStyle(color="white", size=15))
+                                    ft.Icon(name=ft.Icons.VOLUNTEER_ACTIVISM, color="white", size=15),
+                                    ft.Text(" Volunteer", style=ft.TextStyle(color="white", size=15))
                                 ],
                                 spacing=5
                             ),
-                            on_click=lambda e: print("Volunteer clicked")
+                            on_click=lambda e: __import__("volunteer").load_volunteer(page)
                         )
                     ]
                 ),

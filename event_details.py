@@ -252,7 +252,8 @@ def load_event_details(page: ft.Page, event: dict, search_context: dict):
 
     category_buttons = ft.Column(
         controls=[
-            ft.Text("Categories", color="white", size=20, weight=ft.FontWeight.BOLD),
+            ft.Text("Filters", color="white", size=20, weight=ft.FontWeight.BOLD),
+            ft.Text("Category", color="white", size=16, weight=ft.FontWeight.W_600),
             category_row(ft.Icons.BUSINESS_CENTER, "Business"),
             category_row(ft.Icons.RESTAURANT, "Food & Drink"),
             category_row(ft.Icons.CHILD_CARE, "Family & Education"),
