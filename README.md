@@ -32,11 +32,17 @@ Open your Ubuntu WSL terminal and run:
 git config --global user.name [input your username]
 git config --global user.email [input your email]
 ```
-For cheking: run git config --list user.email and user.name must be in the output
+For cheking: run
+```bash
+git config --list
+```
+user.email and user.name must be in the output
 
 Proceed to Step 3 if using https when cloning. Do the steps below when using SSH
+
+## To generate SSH key and Connect to github
 ```bash
-To generate SSH key and Connect to github
+
 ssh-keygen -t rsa 
 ls -l ~/.ssh/ 
 cat ~/.ssh/id_rsa.pub [copy and paste the ssh key in github found in settings]
