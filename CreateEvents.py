@@ -8,7 +8,8 @@ from flet import (
     ElevatedButton,
     Image,
     Dropdown,
-    border_radius
+    border_radius,
+    Alignment
 )
 import datetime
 import httpx
@@ -206,7 +207,7 @@ def main(page: ft.Page):
         alignment=ft.MainAxisAlignment.CENTER
     )
 
-    # Use a Column layout to place the Back button at the top and the main content centered below
+    # Final Layout: Back button at the top, main content centered below
     final_layout = Column(
         controls=[
             Container(
@@ -230,3 +231,6 @@ def main(page: ft.Page):
 
 def load_create_event(page):
     main(page)
+
+if __name__ == "__main__":
+    ft.app(target=main)
