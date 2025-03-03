@@ -3,6 +3,7 @@ import pymongo
 import matplotlib.pyplot as plt
 import io
 import base64
+from datetime import datetime
 
 # Define theme colors
 PRIMARY_COLOR = "#6d9773"       # Accent green
@@ -22,28 +23,43 @@ client = pymongo.MongoClient(MONGO_URI)
 db = client["EventLink"]
 collection = db["events"]
 
-def fetch_event_data():
-    """Fetch events and participants per month from MongoDB."""
+def fetch_available_years():
+    """Fetch distinct years available in the database."""
+    years = collection.distinct("date")
+    years = sorted(set(date[:4] for date in years if len(date) >= 4), reverse=True)
+    return years
+
+def fetch_event_data(selected_year):
+    """Fetch events and participants per month for the given year."""
     pipeline = [
+        {"$addFields": {
+            "event_year": {"$substr": ["$date", 0, 4]},  # Extract YYYY
+            "event_month": {"$substr": ["$date", 5, 2]}  # Extract MM
+        }},
+        {"$match": {"event_year": str(selected_year)}},  # Filter by selected year
         {"$group": {
-            "_id": {"month": {"$substr": ["$date", 0, 7]}},  # Extract YYYY-MM
+            "_id": "$event_month",  # Group by MM (01–12)
             "total_participants": {"$sum": "$participants"},
             "total_events": {"$sum": 1}
         }},
-        {"$sort": {"_id.month": 1}}
+        {"$sort": {"_id": 1}}  # Sort by month
     ]
 
     data = list(collection.aggregate(pipeline))
-    months = [item["_id"]["month"] for item in data]
+    months = [item["_id"] for item in data]  # Only MM
     participants = [item["total_participants"] for item in data]
     events = [item["total_events"] for item in data]
 
     return months, participants, events
 
 def create_chart(months, data, title):
-    """Generate a Matplotlib line chart and return as base64."""
+    """Generate a Matplotlib line chart with months formatted as 01-12."""
     fig, ax = plt.subplots()
     ax.plot(months, data, marker="o", linestyle="-", color=ACCENT_COLOR, label=title)
+
+    ax.set_xticks(range(1, 13))  # Set x-axis ticks for 01-12
+    ax.set_xticklabels([f"{i:02}" for i in range(1, 13)])  # Ensure labels show only numbers
+
     ax.set_xlabel("Month")
     ax.set_ylabel("Count")
     ax.set_title(title)
@@ -61,8 +77,32 @@ def main(page: ft.Page):
     page.bgcolor = BACKGROUND_COLOR
     page.title = "Event Analytics"
 
-    # Fetch event data
-    months, participants, events = fetch_event_data()
+    available_years = fetch_available_years()
+    selected_year = available_years[0] if available_years else str(datetime.now().year)
+
+    # Dropdown to select year
+    year_dropdown = ft.Dropdown(
+        options=[ft.dropdown.Option(year) for year in available_years],
+        value=selected_year,
+        on_change=lambda e: update_graphs(e.control.value, page),
+    )
+
+    def update_graphs(year, page):
+        """Update graphs when a new year is selected."""
+        months, participants, events = fetch_event_data(year)
+
+        # Generate new charts
+        participants_chart = create_chart(months, participants, "Monthly Event Participation")
+        events_chart = create_chart(months, events, "Monthly Events Creation")
+
+        # Convert images for Flet display
+        participants_img.src_base64 = participants_chart
+        events_img.src_base64 = events_chart
+
+        page.update()
+
+    # Fetch initial data
+    months, participants, events = fetch_event_data(selected_year)
 
     # Generate charts
     participants_chart = create_chart(months, participants, "Monthly Event Participation")
@@ -82,14 +122,26 @@ def main(page: ft.Page):
     header = ft.Container(
         content=ft.Row([
             ft.Text("Event Stats", size=24, weight=ft.FontWeight.BOLD, color=SECONDARY_COLOR, expand=True),
-            ft.IconButton(icon=ft.icons.ARROW_BACK, icon_color=SECONDARY_COLOR, icon_size=24, on_click=lambda e: load_my_events(e, page)),
+            ft.IconButton(icon=ft.icons.ARROW_BACK, icon_color=SECONDARY_COLOR, icon_size=24, on_click=lambda e: load_my_events(e)),
         ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
         bgcolor=WHITE,
         padding=15,  
         border_radius=30
     )
 
-    spacing = ft.Container(height=30)  # Adds space between header and graphs
+    spacing = ft.Container(height=20)  # Adds space between header and graphs
+
+    # Year selection dropdown
+    year_selection = ft.Container(
+        content=ft.Row(
+            [
+                ft.Text("Select Year:", size=18, weight="bold", color=WHITE),
+                year_dropdown
+            ],
+            alignment=ft.MainAxisAlignment.CENTER
+        ),
+        padding=10
+    )
 
     # Graph Section 
     graph_section = ft.Container(
@@ -124,7 +176,8 @@ def main(page: ft.Page):
 
     # Add components to the page
     page.add(header)
-    page.add(spacing)  
+    page.add(spacing)
+    page.add(year_selection)
     page.add(graph_section)
 
 ft.app(target=main)
