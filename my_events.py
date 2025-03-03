@@ -44,7 +44,7 @@ def load_my_events(page: ft.Page):
         else:
             upcoming_events.append(event_text)
 
-    # Header (remains at the top)
+    # Header 
     header = ft.Container(
         content=ft.Row([
             ft.Text("My Events", size=30, weight=ft.FontWeight.BOLD, color=SECONDARY_COLOR, expand=True),
@@ -75,7 +75,7 @@ def load_my_events(page: ft.Page):
             expand=True,
         )
 
-    # Event Sections (Centered in the middle)
+    # Event Sections 
     event_container = ft.Container(
         content=ft.Column([
             ft.Row([
@@ -93,7 +93,7 @@ def load_my_events(page: ft.Page):
         height=400,
     )
 
-    # Event Stats Button (Also Centered)
+    # Event Stats Button 
     def go_stats(e, page):
         import analytics
         page.controls.clear()
@@ -110,7 +110,6 @@ def load_my_events(page: ft.Page):
         on_click=lambda e: go_stats(e, page),
     )
 
-    # Centered Layout (Without Occupying Full Screen)
     centered_layout = ft.Column([
         event_container,
         stats_button
