@@ -12,8 +12,8 @@ DARK_RED = "#8B0000"
 MUSTARD_YELLOW = "#B8860B"
 GREEN = "#008000"
 
+
 def load_my_events(page: ft.Page):
-    
     page.title = "My Events"
     page.bgcolor = SECONDARY_COLOR
     page.padding = 20
@@ -44,15 +44,16 @@ def load_my_events(page: ft.Page):
         else:
             upcoming_events.append(event_text)
 
-    # Header 
+    # Header (remains at the top)
     header = ft.Container(
         content=ft.Row([
             ft.Text("My Events", size=30, weight=ft.FontWeight.BOLD, color=SECONDARY_COLOR, expand=True),
-            ft.IconButton(icon=ft.icons.HOME, icon_color=SECONDARY_COLOR, icon_size=30, on_click=lambda e: go_back(e, page),),
+            ft.IconButton(icon=ft.icons.HOME, icon_color=SECONDARY_COLOR, icon_size=30, 
+                          on_click=lambda e: go_back(e, page)),
         ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
         bgcolor=WHITE,
         padding=20,
-        border_radius=30
+        border_radius=30,
     )
 
     def go_back(e, page):
@@ -71,54 +72,62 @@ def load_my_events(page: ft.Page):
             bgcolor=bg_color,
             border_radius=15,
             padding=15,
-            expand=True
+            expand=True,
         )
 
-    # Event Sections
+    # Event Sections (Centered in the middle)
     event_container = ft.Container(
         content=ft.Column([
-            ft.Row([  
+            ft.Row([
                 event_section("Current Events", current_events, GREEN),
             ], spacing=10, expand=True),
             ft.Row([
                 event_section("Upcoming Events", upcoming_events, MUSTARD_YELLOW),
                 event_section("Past Events", past_events, DARK_RED),
             ], spacing=10, expand=True)
-        ], spacing=10),
+        ], spacing=10, alignment=ft.MainAxisAlignment.CENTER),
         bgcolor=WHITE,
         border_radius=15,
         padding=15,
-        expand=True
+        width=600,
+        height=400,
     )
 
-    CONTAINER_WIDTH = 350  
+    # Event Stats Button (Also Centered)
+    def go_stats(e, page):
+        import analytics
+        page.controls.clear()
+        analytics.main(page)
+        page.update()
 
-# Calendar Section
-    calendar = ft.Container(
-        content=ft.Text("📅 Calendar (Placeholder)", size=18, weight=ft.FontWeight.BOLD, color="black"),
-        bgcolor=WHITE,
-        padding=15,
-        border_radius=15,
-        width=CONTAINER_WIDTH  
-    )
-
-# Volunteer Analytics Button
-    volunteer_button = ft.Container(
-        content=ft.Text("Volunteer Analytics", size=18, weight=ft.FontWeight.BOLD, color="black"),
+    stats_button = ft.Container(
+        content=ft.Text("Event Stats", size=18, weight=ft.FontWeight.BOLD, color="black"),
         bgcolor=WHITE,
         padding=15,
         border_radius=30,
         alignment=ft.alignment.center,
-        width=CONTAINER_WIDTH  
+        width=200,
+        on_click=lambda e: go_stats(e, page),
     )
+
+    # Centered Layout (Without Occupying Full Screen)
+    centered_layout = ft.Column([
+        event_container,
+        stats_button
+    ], alignment=ft.MainAxisAlignment.CENTER, horizontal_alignment=ft.CrossAxisAlignment.CENTER)
 
     # Layout
     page.add(
         header,
-        ft.Row([event_container, ft.Column([calendar, volunteer_button], spacing=15, expand=True)], spacing=15, expand=True)
+        ft.Container(
+            content=centered_layout,
+            alignment=ft.alignment.center,
+            expand=True,
+        )
     )
 
     page.update()
+
 
 if __name__ == "__main__":
     ft.app(target=load_my_events)
