@@ -52,7 +52,7 @@ Your prompt should now display (eventlink) indicating the virtual environment is
 ## 4. Install Project Dependencies
 
 ```bash
-pip install flet fastapi uvicorn pymongo bcrypt httpx
+pip install flet fastapi uvicorn pymongo bcrypt httpx pydantic[email]
 ```
 
 ## 5. Run the FastAPI Server
@@ -60,7 +60,7 @@ pip install flet fastapi uvicorn pymongo bcrypt httpx
 The server code is located in server.py. In your terminal (or open a new tab/window), navigate to the project folder (and activate the virtual environment if needed), then run:
 
 ```bash
-uvicorn server:app --reload
+python3 -m uvicorn server:app --reload 
 ```
 
 This starts the FastAPI server (typically at http://127.0.0.1:8000).

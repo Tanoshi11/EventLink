@@ -1,6 +1,5 @@
 import flet as ft
 import httpx
-import os
 import re
 
 # --- Alert Dialog Helpers ---
@@ -340,7 +339,7 @@ def edit_profile(page: ft.Page):
             expand=True,
             bgcolor="rgba(0,0,0,0.5)",
             content=ft.Container(
-                margin=ft.margin.only(left=500, right=500, top=250, bottom=250),
+                margin=ft.margin.only(left=500, right=500, top=200, bottom=200),
                 padding=20,
                 border_radius=10,
                 bgcolor="#406157",

@@ -124,6 +124,25 @@ def load_my_events(page: ft.Page):
         on_click=lambda e: go_stats(e, page),
     )
 
+    # Calendar Section
+    calendar = ft.Container(
+        content=ft.Text("📅 Calendar (Placeholder)", size=18, weight=ft.FontWeight.BOLD, color="black"),
+        bgcolor=WHITE,
+        padding=15,
+        border_radius=15,
+        width=350  
+    )
+
+    # Volunteer Analytics Button
+    volunteer_button = ft.Container(
+        content=ft.Text("Volunteer Analytics", size=18, weight=ft.FontWeight.BOLD, color="black"),
+        bgcolor=WHITE,
+        padding=15,
+        border_radius=30,
+        alignment=ft.alignment.center,
+        width=350  
+    )
+
     # Layout
     centered_layout = ft.Column([
         event_container,
@@ -133,7 +152,7 @@ def load_my_events(page: ft.Page):
     page.add(
         header,
         ft.Container(
-            content=centered_layout,
+            content=ft.Row([centered_layout, ft.Column([calendar, volunteer_button], spacing=15, expand=True)], spacing=15, expand=True),
             alignment=ft.alignment.center,
             expand=True,
         )
