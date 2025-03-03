@@ -10,7 +10,9 @@ Open your Ubuntu WSL terminal and run:
 
 ```bash
 sudo apt update
-sudo apt install python3 python3-pip python3-venv
+sudo apt install python3
+sudo apt install python3-pip
+sudo apt install python3-venv
 sudo apt install git-all
 ```
 
@@ -79,7 +81,13 @@ Your prompt should now display (eventlink) indicating the virtual environment is
 ## 5. Install Project Dependencies
 
 ```bash
-pip install flet fastapi uvicorn pymongo bcrypt httpx pydantic[email]
+pip install flet
+pip install fastapi
+pip install uvicorn
+pip install pymongo
+pip install bcrypt
+pip install httpx
+pip install pydantic[email]
 ```
 
 ## 6. Run the FastAPI Server
