@@ -44,6 +44,18 @@ def search_events(region: str):
         raise HTTPException(status_code=404, detail="No events found for this location.")
     return {"events": events}
 
+
+@app.get("/display_events")
+def display_events():
+    events = list(events_collection.find({}, {"_id": 0}))
+    if not events:
+        raise HTTPException(status_code=404, detail="No events found.")
+    
+    return {"events": events}
+
+    
+
+
 class UserRegister(BaseModel):
     username: str
     email: EmailStr
