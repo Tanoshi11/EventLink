@@ -2,6 +2,7 @@ import flet as ft
 import httpx
 import threading
 import time
+from datetime import datetime
 from header import load_header  # Import the header
 
 def load_event_details(page, event):
@@ -150,7 +151,20 @@ def load_search(page, query, search_type="global", location=None):
         except Exception as ex:
             print(f"Error in fetch_events: {ex}")
             return []
-        
+
+    def get_event_status(event_date, event_time):
+        """Determine the status of the event based on the current date and time."""
+        event_datetime_str = f"{event_date} {event_time}"
+        event_datetime = datetime.strptime(event_datetime_str, "%Y-%m-%d %H:%M")
+        current_datetime = datetime.now()
+
+        if current_datetime > event_datetime:
+            return "Closed"
+        elif current_datetime.date() == event_datetime.date():
+            return "Ongoing"
+        else:
+            return "Upcoming"
+
     def load_events():
         time.sleep(0.5)  # Optional delay
         events = fetch_events()
@@ -166,13 +180,22 @@ def load_search(page, query, search_type="global", location=None):
                 # Debugging: Print each event's data
                 print("Event data:", ev)
 
+                event_status = get_event_status(ev.get("date", ""), ev.get("time", ""))
+                status_color = {
+                    "Upcoming": "#4CAF50",
+                    "Ongoing": "#FFEB3B",
+                    "Closed": "#FF5252"
+                }.get(event_status, "white")
+
                 event_container = ft.Container(
                     content=ft.Column(
                         controls=[
                             ft.Text(ev.get("name", "Unnamed Event"), size=22, color="white", weight=ft.FontWeight.BOLD),
+                            ft.Text(f"Status: {event_status}", color=status_color, weight=ft.FontWeight.BOLD),
                             ft.Text(f"Date: {ev.get('date', '')}", color="white"),
+                            ft.Text(f"Time: {ev.get('time', '')}", color="white"),
                             ft.Text(f"Location: {ev.get('location', '')}", color="white"),
-                            ft.Text(ev.get("description", ""), color="white"),
+                            ft.Text(f"Category: {ev.get('type', 'Unknown')}", color="white"),  # Use 'type' instead of 'category'
                         ],
                         spacing=5
                     ),
