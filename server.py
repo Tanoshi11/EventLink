@@ -200,11 +200,14 @@ def register(user: UserRegister):
     }
     users_collection.insert_one(user_data)
     
-    notifications_collection.insert_one({
+    # Create a welcome notification with date and time
+    current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    welcome_notification = {
         "username": user.username,
-        "message": "Welcome to EventLink! Thank you for signing up.",
-        "date": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    })
+        "message": f"Welcome to EventLink! Thank you for signing up.\n------------------------\n{current_time}",
+        "date": current_time
+    }
+    notifications_collection.insert_one(welcome_notification)
 
     return {"message": "Registration successful"}
 
@@ -263,8 +266,8 @@ def get_my_events(username: str):
 
 @app.get("/notifications")
 def get_notifications(username: str):
-    """Fetch the user's notifications."""
-    notifications = list(notifications_collection.find({"username": username}, {"_id": 0}))
+    """Fetch the user's notifications, sorted by date in descending order."""
+    notifications = list(notifications_collection.find({"username": username}, {"_id": 0}).sort("date", -1))
     if not notifications:
         raise HTTPException(status_code=404, detail="No notifications found for this user.")
     return {"notifications": notifications}

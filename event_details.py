@@ -343,15 +343,31 @@ def load_event_details(page: ft.Page, event: dict, search_context: dict):
         page.update()
 
     def update_join_button():
-        join_event_button.text = "Joined Event"
-        join_event_button.disabled = True
+        # Remove the join button and replace it with a text element
+        buttons_row.controls.remove(join_event_button)
+        joined_text = ft.Text("Joined Event", size=15, color="white", weight="bold")
+        buttons_row.controls.insert(0, joined_text)
+        
         page.data["joined_event"] = True  # Mark the event as joined in page data
         page.update()
 
     # Determine if the user has already joined the event
     username = page.data.get("username")
-    if username in event.get("participants", []) or page.data.get("joined_event"):
-        join_event_button = ft.Text("Joined Event", size=15, color="white", weight="bold")
+    response = httpx.get(f"http://localhost:8000/my_events?username={username}")
+    if response.status_code == 200:
+        user_events = response.json().get("events", [])
+        if any(event.get("name") == e.get("name") for e in user_events):
+            join_event_button = ft.Text("Joined Event", size=15, color="white", weight="bold")
+        else:
+            join_event_button = ft.ElevatedButton(
+                text="Join Event",
+                on_click=join_event,
+                bgcolor="#C77000",
+                color="white",
+                style=ft.ButtonStyle(
+                    shape=ft.RoundedRectangleBorder(radius=10)
+                )
+            )
     else:
         join_event_button = ft.ElevatedButton(
             text="Join Event",
@@ -402,7 +418,7 @@ def load_event_details(page: ft.Page, event: dict, search_context: dict):
         content=ft.Column(
             [
                 ft.Text(event.get("name", "Unnamed Event"), size=24, weight="bold", color="white"),
-                ft.Text(f"Status: {event_status}", color=status_color,size=20, weight=ft.FontWeight.BOLD),
+                ft.Text(f"Status: {event_status}", color=status_color, size=20, weight=ft.FontWeight.BOLD),
                 ft.Divider(color="white"),
                 image_details_row,
                 ft.Divider(color="white"),

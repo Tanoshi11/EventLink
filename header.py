@@ -122,23 +122,23 @@ def load_header(page: ft.Page):
         page.overlay.append(notif_popup)
         page.update()
 
-    def get_current_location(e):
-        """Fetch user's current location using Geolocation API."""
-        def on_success(position):
-            lat = position.coords.latitude
-            lon = position.coords.longitude
-            page.data["location"] = f"{lat},{lon}"
-            page.update()
-            search_events(e)  # Trigger search with the new location
+    # def get_current_location(e):
+    #     """Fetch user's current location using Geolocation API."""
+    #     def on_success(position):
+    #         lat = position.coords.latitude
+    #         lon = position.coords.longitude
+    #         page.data["location"] = f"{lat},{lon}"
+    #         page.update()
+    #         search_events(e)  # Trigger search with the new location
 
-        def on_error(error):
-            page.snack_bar = ft.SnackBar(
-                content=ft.Text("Failed to get location. Please select a region manually."),
-                open=True
-            )
-            page.update()
+    #     def on_error(error):
+    #         page.snack_bar = ft.SnackBar(
+    #             content=ft.Text("Failed to get location. Please select a region manually."),
+    #             open=True
+    #         )
+    #         page.update()
 
-        page.window.navigator.geolocation.getCurrentPosition(on_success, on_error)
+    #     page.window.navigator.geolocation.getCurrentPosition(on_success, on_error)
 
     # In header.py
     def search_events(e):
@@ -191,12 +191,12 @@ def load_header(page: ft.Page):
                         ft.VerticalDivider(width=1, color="white"),
                         ft.Icon(name=ft.Icons.LOCATION_ON, color="white", size=30),
                         region_dropdown,
-                        ft.IconButton(  # Add "Use My Location" button
-                            icon=ft.icons.MY_LOCATION,
-                            icon_color="white",
-                            tooltip="Use my current location",
-                            on_click=get_current_location,
-                        )
+                        # ft.IconButton(  # Add "Use My Location" button
+                        #     icon=ft.icons.MY_LOCATION,
+                        #     icon_color="white",
+                        #     tooltip="Use my current location",
+                        #     on_click=get_current_location,
+                        # )
                     ],
                     alignment=ft.MainAxisAlignment.SPACE_BETWEEN
                 ),

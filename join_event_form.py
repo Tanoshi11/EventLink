@@ -137,4 +137,3 @@ def close_join_popup(page, back_callback):
 
     # Call the back_callback with the page argument
     back_callback(page) if back_callback else None  # Ensures 'Back' only works if properly set
-
