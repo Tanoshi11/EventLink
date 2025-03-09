@@ -19,45 +19,10 @@ def close_dialog(page):
     page.dialog.open = False
     page.update()
 
-# ----------------- Profile Page -----------------
-def show_alert(page, title, content):
-    dialog = ft.AlertDialog(
-        title=ft.Text(title),
-        content=ft.Text(content),
-        actions=[ft.TextButton("OK", on_click=lambda e: close_dialog(page))]
-    )
-    page.dialog = dialog
-    page.dialog.open = True
-    page.update()
-
-def close_dialog(page):
-    page.dialog.open = False
-    page.update()
-
-# ----------------- Profile Popup -----------------
-import flet as ft
-import httpx
-import re
-from login import load_login
-
-# --- Alert Dialog Helpers ---
-def show_alert(page, title, content):
-    dialog = ft.AlertDialog(
-        title=ft.Text(title),
-        content=ft.Text(content),
-        actions=[ft.TextButton("OK", on_click=lambda e: close_dialog(page))]
-    )
-    page.dialog = dialog
-    page.dialog.open = True
-    page.update()
-
-def close_dialog(page):
-    page.dialog.open = False
-    page.update()
-
 # ----------------- Profile Popup -----------------
 def show_profile_popup(page: ft.Page):
     """Show the profile as a popup with a blurred background."""
+
     # Create a semi-transparent overlay to simulate the blur effect
     overlay = ft.Container(
         bgcolor=ft.colors.with_opacity(0.5, ft.colors.BLACK),  # Semi-transparent black
@@ -74,7 +39,6 @@ def show_profile_popup(page: ft.Page):
         response = httpx.get(f"http://127.0.0.1:8000/get_user?username={username}", timeout=10.0)
         response.raise_for_status()
         doc = response.json()
-
         user_data = {
             "username": doc.get("username", "N/A"),
             "email": doc.get("email", "N/A"),
@@ -83,8 +47,12 @@ def show_profile_popup(page: ft.Page):
             "backup_number": doc.get("backup_number", "N/A"),
             "address": doc.get("address", "N/A"),
             "gender": doc.get("gender", "-"),
-            "date_joined": doc.get("date_joined", "N/A")
+            "date_joined": doc.get("date_joined", "N/A"),
+            "description": doc.get("description", "Describe Yourself!")  # Add description field
         }
+    except httpx.HTTPStatusError as e:
+        show_alert(page, "Error", f"HTTP Error retrieving user data: {e}")
+        return
     except Exception as e:
         show_alert(page, "Error", f"Error retrieving user data: {e}")
         return
@@ -94,7 +62,6 @@ def show_profile_popup(page: ft.Page):
 
     # Profile content
     profile_title = ft.Text("Profile Information", size=30, weight=ft.FontWeight.BOLD)
-
     profile_content = ft.Row([
         ft.Image(
             src="images/no_profile.png",
@@ -118,6 +85,7 @@ def show_profile_popup(page: ft.Page):
 
     # Check for incomplete fields
     incomplete_fields = any(value in ["N/A", "-"] for key, value in user_data.items() if key not in ["username", "date_joined", "email", "contact"])
+
     if incomplete_fields:
         note_text = ft.Text(
             "Note: Some profile details are incomplete. Please update for better security.",
@@ -125,6 +93,7 @@ def show_profile_popup(page: ft.Page):
             color="yellow",
             text_align=ft.TextAlign.CENTER,
         )
+
         update_button = ft.TextButton(
             "Update Profile",
             icon=ft.icons.EDIT_NOTE_SHARP,
@@ -135,6 +104,7 @@ def show_profile_popup(page: ft.Page):
                 text_style=ft.TextStyle(size=18)
             )
         )
+
         action_buttons = ft.Column(
             controls=[
                 note_text,  # Message about profile completeness
@@ -153,6 +123,7 @@ def show_profile_popup(page: ft.Page):
             spacing=10,
             alignment=ft.MainAxisAlignment.CENTER,
         )
+
     else:
         # After updating, reposition the Edit Profile button
         action_buttons = ft.Column(
@@ -184,30 +155,102 @@ def show_profile_popup(page: ft.Page):
         )
 
     vertical_divider = ft.VerticalDivider(color="white", thickness=2)
-
     about_me_title = ft.Text("About Me", size=26, weight=ft.FontWeight.BOLD, color="white")
+
+    # Add a TextField for the description
+    description_field = ft.TextField(
+        value=user_data["description"],
+        multiline=True,
+        max_length=465,  # Increase to 1000 or whatever limit you prefer
+        text_style=ft.TextStyle(color="white", size=18),
+        border=ft.InputBorder.NONE,
+        read_only=True,  # Turn this off when editing
+        content_padding=ft.padding.all(10),
+        width=420,
+        height=450,
+    )
+
+
     about_me = ft.Container(
-        content=ft.Text("Describe Yourself!", color="white", size=18),
+        content=description_field,
         bgcolor="#406157",
         padding=15,
         border_radius=10,
         width=420,
         height=450,
     )
-    edit_description = ft.TextButton(
-        "Edit Description",
-        icon=ft.icons.EDIT,
+
+    # Save button (initially hidden)
+    save_button = ft.TextButton(
+        "Save",
+        icon=ft.icons.SAVE,
         icon_color="#FFBA00",
+        visible=False,  # Initially hidden
+        on_click=lambda e: on_save_description(page, description_field, save_button, edit_description),
         style=ft.ButtonStyle(
             color=ft.colors.WHITE,
             text_style=ft.TextStyle(size=18)
         )
     )
 
+    def on_edit_description(e):
+        description_field.read_only = False
+        save_button.visible = True
+        edit_description.visible = False
+        page.update()
+
+    edit_description = ft.TextButton(
+        "Edit Description",
+        icon=ft.icons.EDIT,
+        icon_color="#FFBA00",
+        on_click=on_edit_description,
+        style=ft.ButtonStyle(
+            color=ft.colors.WHITE,
+            text_style=ft.TextStyle(size=18)
+        )
+    )
+
+    def on_save_description(page, description_field, save_button, edit_description):
+        # Save the description to the backend
+        username = page.data.get("username")
+        new_description = description_field.value
+        try:
+            response = httpx.patch(
+                f"http://127.0.0.1:8000/update_user?username={username}",
+                json={"description": new_description},
+                timeout=10.0
+            )
+            response.raise_for_status()
+            # Update the user_data on the page
+            page.user_data["description"] = new_description
+            print("Description saved successfully")
+            show_alert(page, "Success", "Description saved successfully!")
+        except httpx.HTTPStatusError as ex:
+            print("Error saving description:", ex)
+            show_alert(page, "Error", f"Error saving description: {ex}") # Show error to user
+        except Exception as ex:
+            print("Error saving description:", ex)
+            show_alert(page, "Error", f"Error saving description: {ex}") # Show error to user
+
+        # Reset the UI
+        description_field.read_only = True
+        save_button.visible = False
+        edit_description.visible = True
+        page.update()
+
+    # Row for Edit and Save buttons
+    button_row = ft.Row(
+        controls=[
+            edit_description,
+            save_button,
+        ],
+        spacing=10,
+    )
+
     side_column = ft.Column([
         about_me_title,
         about_me,
-        edit_description
+        button_row  # Use the button row here
     ], spacing=20, width=420)
 
     full_profile_container = ft.Container(
@@ -240,7 +283,7 @@ def show_profile_popup(page: ft.Page):
                 content=full_profile_container,
                 alignment=ft.alignment.center,
                 expand=True,
-            )
+            ),
         ],
         expand=True,
     )
@@ -253,12 +296,14 @@ def close_profile_popup(page: ft.Page):
     """Close the profile popup."""
     page.overlay.clear()
     page.update()
+
 # ----------------- Update Popup (Missing Fields Only) -----------------
 def edit_profile(page: ft.Page):
     # This popup shows only missing fields (for updating incomplete profile info)
     user_data = page.user_data if hasattr(page, "user_data") else {}
     missing_fields_controls = {}
     error_labels = {}
+
     # Define credentials (including Contact) with Gender first
     credentials = [
         ("Gender", "gender"),
@@ -268,6 +313,7 @@ def edit_profile(page: ft.Page):
         ("Backup Number", "backup_number"),
         ("Address", "address")
     ]
+
     for label, key in credentials:
         if user_data.get(key, "N/A") in ["N/A", "-"]:
             error_labels[key] = ft.Text("", color="red", size=12)
@@ -294,8 +340,10 @@ def edit_profile(page: ft.Page):
                     width=350,
                     text_style=ft.TextStyle(color="#FDF7E3"),
                     label_style=ft.TextStyle(color="#FDF7E3"),
-                    border_color="#D4A937",
                     content_padding=ft.padding.all(10),
+                    border_color="#D4A937",  # Dark green border
+                    bgcolor="#0C3B2E",  # Dark green background
+                    color="white",  # White text
                 )
             else:
                 missing_fields_controls[key] = ft.TextField(
@@ -307,21 +355,24 @@ def edit_profile(page: ft.Page):
                     border_color="#D4A937",
                     content_padding=ft.padding.all(10)
                 )
+
     columns = []
     for key in missing_fields_controls:
         columns.append(ft.Column(controls=[missing_fields_controls[key], error_labels[key]], spacing=2))
+
     if columns:
         form_content = ft.Column(controls=columns, spacing=15)
     else:
         form_content = ft.Text("All profile details are complete.", size=18, color="#FDF7E3")
-    
+
     def on_save(e):
         # Reset error messages and border colors
         for key in error_labels:
             error_labels[key].value = ""
             missing_fields_controls[key].border_color = "#FDF7E3"
+
         errors = False
-        
+
         # Validate Contact: must be exactly 11 digits.
         if "contact" in missing_fields_controls:
             contact_val = missing_fields_controls["contact"].value.strip()
@@ -329,7 +380,7 @@ def edit_profile(page: ft.Page):
                 error_labels["contact"].value = "Contact number must be exactly 11 digits."
                 missing_fields_controls["contact"].border_color = "red"
                 errors = True
-        
+
         # Validate Backup Email
         if "backup_email" in missing_fields_controls:
             backup_email_val = missing_fields_controls["backup_email"].value.strip()
@@ -337,7 +388,7 @@ def edit_profile(page: ft.Page):
                 error_labels["backup_email"].value = "Invalid backup email format. Use user@example.com."
                 missing_fields_controls["backup_email"].border_color = "red"
                 errors = True
-        
+
         # Validate Backup Number
         if "backup_number" in missing_fields_controls:
             backup_number_val = missing_fields_controls["backup_number"].value.strip()
@@ -345,7 +396,7 @@ def edit_profile(page: ft.Page):
                 error_labels["backup_number"].value = "Backup number must be exactly 11 digits."
                 missing_fields_controls["backup_number"].border_color = "red"
                 errors = True
-        
+
         # Validate Address: expects "Street, City, Province"
         if "address" in missing_fields_controls:
             address_val = missing_fields_controls["address"].value.strip()
@@ -353,21 +404,24 @@ def edit_profile(page: ft.Page):
                 error_labels["address"].value = "Address must be in format: Street, City, Province."
                 missing_fields_controls["address"].border_color = "red"
                 errors = True
-        
+
         page.update()
+
         if errors:
             print("Validation errors encountered.")
             return
-        
+
         updated_values = {}
         for key, field in missing_fields_controls.items():
-             # Access value differently for TextField vs. Dropdown
+            # Access value differently for TextField vs. Dropdown
             val = field.value if isinstance(field, ft.TextField) else field.value
             if val:
                 updated_values[key] = val
+
         if not updated_values:
             print("No updates provided")
             return
+
         try:
             response = httpx.patch(
                 f"http://127.0.0.1:8000/update_user?username={user_data.get('username')}",
@@ -375,13 +429,21 @@ def edit_profile(page: ft.Page):
                 timeout=10.0
             )
             response.raise_for_status()
+
             for key, value in updated_values.items():
                 page.user_data[key] = value
+
             print("Profile updated successfully")
             close_edit_popup(page, popup)
+            show_alert(page, "Success", "Profile updated successfully!")
+
+        except httpx.HTTPStatusError as ex:
+            print("Error updating profile:", ex)
+            show_alert(page, "Error", f"Error updating profile: {ex}")
         except Exception as ex:
             print("Error updating profile:", ex)
-    
+            show_alert(page, "Error", f"Error updating profile: {ex}")
+
     popup = ft.AnimatedSwitcher(
         duration=500,
         content=ft.Container(
@@ -398,8 +460,8 @@ def edit_profile(page: ft.Page):
                     controls=[
                         ft.Text("Update Profile", size=24, weight=ft.FontWeight.BOLD, color="#FDF7E3"),
                         form_content,
-                            ft.Row(
-                                controls=[
+                        ft.Row(
+                            controls=[
                                 ft.ElevatedButton(
                                     "Save",
                                     on_click=on_save,
@@ -417,18 +479,19 @@ def edit_profile(page: ft.Page):
                                     style=ft.ButtonStyle(
                                         shape=ft.RoundedRectangleBorder(radius=10)
                                     )
-                                )
+                                ),
                             ],
-                        spacing=20,
-                        alignment=ft.MainAxisAlignment.CENTER,
-                    )
+                            spacing=20,
+                            alignment=ft.MainAxisAlignment.CENTER,
+                        ),
                     ],
                     spacing=20,
                     horizontal_alignment=ft.CrossAxisAlignment.CENTER
-                )
-            )
-        )
+                ),
+            ),
+        ),
     )
+
     page.overlay.append(popup)
     page.update()
     popup.content.opacity = 1
@@ -458,7 +521,6 @@ def full_edit_profile(page: ft.Page):
 
     for label, key in credentials:
         error_labels[key] = ft.Text("", color="red", size=12)
-        
         if key == "contact":
             edit_fields_controls[key] = ft.TextField(
                 label=label,
@@ -484,8 +546,10 @@ def full_edit_profile(page: ft.Page):
                 width=350,
                 text_style=ft.TextStyle(color="#FDF7E3"),
                 label_style=ft.TextStyle(color="#FDF7E3"),
-                border_color="#D4A937",
                 content_padding=ft.padding.all(10),
+                border_color="#D4A937",  # Dark green border
+                bgcolor="#0C3B2E",  # Dark green background
+                color="white",  # White text
             )
         else:
             edit_fields_controls[key] = ft.TextField(
@@ -510,6 +574,7 @@ def full_edit_profile(page: ft.Page):
         for key in error_labels:
             error_labels[key].value = ""
             edit_fields_controls[key].border_color = "#FDF7E3"
+
         errors = False
 
         # Validate Contact: must be exactly 11 digits.
@@ -519,7 +584,7 @@ def full_edit_profile(page: ft.Page):
                 error_labels["contact"].value = "Contact number must be exactly 11 digits."
                 edit_fields_controls["contact"].border_color = "red"
                 errors = True
-        
+
         # Validate Backup Email
         if "backup_email" in edit_fields_controls:
             backup_email_val = edit_fields_controls["backup_email"].value.strip()
@@ -527,7 +592,7 @@ def full_edit_profile(page: ft.Page):
                 error_labels["backup_email"].value = "Invalid backup email format. Use user@example.com."
                 edit_fields_controls["backup_email"].border_color = "red"
                 errors = True
-        
+
         # Validate Backup Number
         if "backup_number" in edit_fields_controls:
             backup_number_val = edit_fields_controls["backup_number"].value.strip()
@@ -535,7 +600,7 @@ def full_edit_profile(page: ft.Page):
                 error_labels["backup_number"].value = "Backup number must be exactly 11 digits."
                 edit_fields_controls["backup_number"].border_color = "red"
                 errors = True
-        
+
         # Validate Address: expects "Street, City, Province"
         if "address" in edit_fields_controls:
             address_val = edit_fields_controls["address"].value.strip()
@@ -545,6 +610,7 @@ def full_edit_profile(page: ft.Page):
                 errors = True
 
         page.update()
+
         if errors:
             print("Validation errors encountered.")
             return
@@ -567,13 +633,20 @@ def full_edit_profile(page: ft.Page):
                 timeout=10.0
             )
             response.raise_for_status()
-            # Update user_data on the page with new values
+
             for key, value in updated_values.items():
                 page.user_data[key] = value
+
             print("Profile updated successfully")
-            close_full_edit_popup(page, popup)
+            close_edit_popup(page, popup)
+            show_alert(page, "Success", "Profile updated successfully!")
+
+        except httpx.HTTPStatusError as ex:
+            print("Error updating profile:", ex)
+            show_alert(page, "Error", f"Error updating profile: {ex}")
         except Exception as ex:
             print("Error updating profile:", ex)
+            show_alert(page, "Error", f"Error updating profile: {ex}")
 
     popup = ft.AnimatedSwitcher(
         duration=500,
@@ -582,18 +655,17 @@ def full_edit_profile(page: ft.Page):
             expand=True,
             bgcolor="rgba(0,0,0,0.5)",
             content=ft.Container(
-                margin=ft.margin.only(left=500, right=500, top=100, bottom=100),
+                margin=ft.margin.only(left=500, right=500, top=200, bottom=200),
                 padding=20,
                 border_radius=10,
                 bgcolor="#406157",
                 border=ft.border.all(3, "white"),
-                height=700, # Adjust this value
                 content=ft.Column(
                     controls=[
-                        ft.Text("Update Profile", size=24, weight=ft.FontWeight.BOLD, color="#FDF7E3"),
+                        ft.Text("Edit Profile", size=24, weight=ft.FontWeight.BOLD, color="#FDF7E3"),
                         form_content,
-                            ft.Row(
-                                controls=[
+                        ft.Row(
+                            controls=[
                                 ft.ElevatedButton(
                                     "Save",
                                     on_click=on_save,
@@ -611,17 +683,17 @@ def full_edit_profile(page: ft.Page):
                                     style=ft.ButtonStyle(
                                         shape=ft.RoundedRectangleBorder(radius=10)
                                     )
-                                    )
-                                ],
+                                ),
+                            ],
                             spacing=20,
                             alignment=ft.MainAxisAlignment.CENTER,
-                        )
+                        ),
                     ],
                     spacing=20,
                     horizontal_alignment=ft.CrossAxisAlignment.CENTER
-                )
-            )
-        )
+                ),
+            ),
+        ),
     )
 
     page.overlay.append(popup)
@@ -629,11 +701,6 @@ def full_edit_profile(page: ft.Page):
     popup.content.opacity = 1
     popup.update()
 
-def close_full_edit_popup(page, popup):
-    popup.content.opacity = 0
-    popup.update()
-    page.overlay.remove(popup)
-    page.update()
 
 # ----------------- Navigation Functions -----------------
 def back_to_home(page: ft.Page):

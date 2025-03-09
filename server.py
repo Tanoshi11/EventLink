@@ -216,7 +216,8 @@ def register(user: UserRegister):
         "contact": user.contact,
         "password": hashed_password.decode(),
         "gender": user.gender,
-        "date_joined": datetime.now().strftime("%Y-%m-%d")
+        "date_joined": datetime.now().strftime("%Y-%m-%d"),
+        "description": "Describe Yourself!"
     }
     users_collection.insert_one(user_data)
     
@@ -305,6 +306,7 @@ class UpdateUserRequest(BaseModel):
     backup_email: Optional[str] = None
     backup_number: Optional[str] = None
     address: Optional[str] = None
+    description: Optional[str] = None  # Added field
 
 @app.patch("/update_user")
 def update_user(username: str, update_data: UpdateUserRequest):
