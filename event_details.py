@@ -1,208 +1,17 @@
 import flet as ft
 import httpx
-import threading
-import time
+from datetime import datetime
 from search import load_search
 from header import load_header
 import join_event_form  # Import the join_event_form module
-from datetime import datetime
 
 def load_event_details(page: ft.Page, event: dict, search_context: dict):
-    """
-    Load detailed information about the event when the user clicks on an event container.
-    """
     if page.data is None:
         page.data = {}
-
     page.data["search_context"] = search_context
     page.controls.clear()
 
     # ----------------- Taskbar (Header) -----------------
-    def go_homepage(e):
-        import homepg
-        homepg.load_homepage(page)
-
-    def open_notifications(e):
-        print("Notifications clicked (placeholder).")
-
-    def close_notifications(e):
-        print("Close notifications (placeholder).")
-
-    def show_profile_page(e):
-        print("Show profile page (placeholder).")
-
-    def logout(e):
-        print("Logout user (placeholder).")
-
-    def load_my_events(page: ft.Page):
-        try:
-            username = page.data.get("username")
-            response = httpx.get(f"http://localhost:8000/my_events?username={username}")
-            if response.status_code == 200:
-                events = response.json().get("events", [])
-                load_search(page, query="My Events", search_type="my_events")
-            else:
-                print("Error fetching user's events:", response.status_code)
-        except Exception as ex:
-            print("Error loading my events:", ex)
-
-    def load_create_event(page: ft.Page):
-        import CreateEvents
-        CreateEvents.load_create_event(page)
-
-    def get_regions():
-        try:
-            response = httpx.get("http://localhost:8000/regions")
-            if response.status_code == 200:
-                return response.json()["regions"]
-        except Exception as ex:
-            print("Error fetching regions:", ex)
-        return []
-
-    regions = get_regions()
-
-    def search_events(e):
-        query = search_bar.value.strip() if search_bar.value else "All"
-        location = region_dropdown.value
-        load_search(page, query, search_type="global", location=location)
-
-    region_dropdown = ft.Dropdown(
-        options=[ft.dropdown.Option(region) for region in regions],
-        hint_text="Select Location",
-        expand=True,
-        on_change=search_events,
-        border_color="white"
-    )
-
-    search_bar = ft.TextField(
-        hint_text="Search events",
-        border=None,
-        expand=True,
-        text_style=ft.TextStyle(size=18, color="white"),
-        border_radius=20,
-        border_color="white",
-        on_submit=search_events
-    )
-
-    header = ft.Row(
-        controls=[
-            ft.Container(width=15),
-            ft.Container(
-                content=ft.Image(src="images/eventlink.png", width=200, height=80, fit=ft.ImageFit.CONTAIN),
-                margin=ft.margin.only(right=10),
-                on_click=go_homepage
-            ),
-            ft.Container(
-                content=ft.Row(
-                    controls=[
-                        ft.Icon(name=ft.Icons.SEARCH, color="white", size=30),
-                        search_bar,
-                        ft.VerticalDivider(width=1, color="white"),
-                        ft.Icon(name=ft.Icons.LOCATION_ON, color="white", size=30),
-                        region_dropdown,
-                    ],
-                    alignment=ft.MainAxisAlignment.SPACE_BETWEEN
-                ),
-                border_radius=15,
-                border=ft.border.all(1, "white"),
-                padding=ft.padding.symmetric(horizontal=15, vertical=10),
-                expand=True,
-                bgcolor="#105743",
-                margin=ft.margin.only(top=16, bottom=16, right=30)
-            ),
-            ft.VerticalDivider(width=1, color="white", leading_indent=30, trailing_indent=30),
-            ft.Container(
-                content=ft.PopupMenuButton(
-                    tooltip="",
-                    content=ft.Container(
-                        content=ft.Text(
-                            "Events",
-                            style=ft.TextStyle(
-                                size=20,
-                                color="white",
-                                weight=ft.FontWeight.BOLD,
-                                letter_spacing=1.5
-                            )
-                        ),
-                        alignment=ft.alignment.center
-                    ),
-                    height=55,
-                    width=175,
-                    bgcolor="#B46617",
-                    menu_position=ft.PopupMenuPosition.UNDER,
-                    items=[
-                        ft.PopupMenuItem(
-                            content=ft.Row([ft.Icon(name=ft.Icons.CALENDAR_TODAY, color="white", size=15),
-                                            ft.Text("My Events", style=ft.TextStyle(color="white", size=15))]),
-                            on_click=lambda e: load_my_events(page)
-                        ),
-                        ft.PopupMenuItem(
-                            content=ft.Row([ft.Icon(name=ft.Icons.EVENT_NOTE, color="white", size=15),
-                                            ft.Text("Create Event", style=ft.TextStyle(color="white", size=15))]),
-                            on_click=lambda e: load_create_event(page)
-                        ),
-                        ft.PopupMenuItem(
-                            content=ft.Row(
-                                controls=[ft.Icon(name=ft.Icons.SENTIMENT_SATISFIED, color="white", size=15),
-                                          ft.Text("Volunteer", style=ft.TextStyle(color="white", size=15))],
-                                spacing=5
-                            ),
-                            on_click=lambda e: print("Volunteer clicked")
-                        )
-                    ]
-                ),
-                margin=ft.margin.only(left=3, right=3)
-            ),
-            ft.VerticalDivider(width=1, color="white", leading_indent=30, trailing_indent=30),
-            ft.Container(
-                content=ft.IconButton(
-                    icon=ft.Icons.NOTIFICATIONS,
-                    on_click=open_notifications,
-                    icon_color="#FFBA00",
-                    icon_size=40,
-                    tooltip="Notifications",
-                    width=60
-                ),
-                margin=ft.margin.only(left=40, right=10),
-                border=ft.border.all(2, "#105743"),
-                border_radius=30
-            ),
-            ft.Container(
-                content=ft.PopupMenuButton(
-                    tooltip="Profile",
-                    content=ft.Container(
-                        content=ft.Icon(name=ft.Icons.PERSON_ROUNDED, color="#FFBA00", size=40),
-                        alignment=ft.alignment.center
-                    ),
-                    height=55,
-                    width=60,
-                    bgcolor="#B46617",
-                    items=[
-                        ft.PopupMenuItem(
-                            content=ft.Row(
-                                controls=[ft.Icon(name=ft.Icons.PERSON_ROUNDED, color="white", size=15),
-                                          ft.Text("Profile", style=ft.TextStyle(color="white", size=15))],
-                                spacing=5
-                            ),
-                            on_click=show_profile_page
-                        ),
-                        ft.PopupMenuItem(
-                            content=ft.Row(
-                                controls=[ft.Icon(name=ft.Icons.EXIT_TO_APP, color="white", size=15),
-                                          ft.Text("Logout", style=ft.TextStyle(color="white", size=15))],
-                                spacing=5
-                            ),
-                            on_click=logout
-                        )
-                    ]
-                ),
-                margin=ft.margin.only(left=50, right=20),
-                border=ft.border.all(2, "#105743"),
-                border_radius=30
-            )
-        ]
-    )
-
     taskbar = load_header(page)
 
     # ----------------- Sidebar (Categories) -----------------
@@ -210,39 +19,43 @@ def load_event_details(page: ft.Page, event: dict, search_context: dict):
         load_search(page, query=category_label, search_type="category")
 
     def category_row(icon_name: str, label: str):
+        """Create a clickable category row."""
         return ft.Container(
             content=ft.Row(
-                controls=[ft.Icon(name=icon_name, color="white", size=20),
-                          ft.Text(label, color="white", size=16)],
+                controls=[
+                    ft.Icon(name=icon_name, color="white", size=20),
+                    ft.Text(label, color="white", size=16),
+                ],
                 spacing=10,
                 alignment=ft.MainAxisAlignment.START
             ),
             padding=ft.padding.all(5),
             on_click=lambda e: handle_category_click(e, label),
             ink=True,
-            border_radius=ft.border_radius.all(5),
+            border_radius=ft.border_radius.all(5)
         )
 
     category_buttons = ft.Column(
         controls=[
             ft.Text("Filters", color="white", size=20, weight=ft.FontWeight.BOLD),
             ft.Text("Category", color="white", size=16, weight=ft.FontWeight.W_600),
+            category_row(ft.Icons.BRUSH, "Arts"),
             category_row(ft.Icons.BUSINESS_CENTER, "Business"),
-            category_row(ft.Icons.RESTAURANT, "Food & Drink"),
-            category_row(ft.Icons.CHILD_CARE, "Family & Education"),
+            category_row(ft.Icons.FAVORITE, "Charity"),
+            category_row(ft.Icons.LOCAL_LIBRARY, "Community"),
+            category_row(ft.Icons.SCHOOL, "Education"),
+            category_row(ft.Icons.THEATER_COMEDY, "Entertainment"),
+            category_row(ft.Icons.ECO, "Environment"),
+            category_row(ft.Icons.RESTAURANT, "Food"),
+            category_row(ft.Icons.GAMES, "Gaming"),
             category_row(ft.Icons.HEALTH_AND_SAFETY, "Health"),
-            category_row(ft.Icons.DIRECTIONS_BOAT, "Travel"),
             category_row(ft.Icons.MUSIC_NOTE, "Music"),
-            category_row(ft.Icons.THEATER_COMEDY, "Performing Arts"),
-            category_row(ft.Icons.STYLE, "Fashion"),
-            category_row(ft.Icons.MOVIE, "Film & Media"),
-            category_row(ft.Icons.COLOR_LENS, "Hobbies"),
-            category_row(ft.Icons.HOME, "Home & Lifestyle"),
-            category_row(ft.Icons.GROUP, "Community"),
-            category_row(ft.Icons.VOLUNTEER_ACTIVISM, "Charity & Causes"),
-            category_row(ft.Icons.ACCOUNT_BALANCE, "Government"),
+            category_row(ft.Icons.GAVEL, "Politics"),
+            category_row(ft.Icons.SPORTS_SOCCER, "Sports"),
+            category_row(ft.Icons.DEVICES, "Technology"),
+            category_row(ft.Icons.FLIGHT, "Travel"),
         ],
-        spacing=15,
+        spacing=12,
         alignment=ft.MainAxisAlignment.START
     )
 
@@ -265,7 +78,6 @@ def load_event_details(page: ft.Page, event: dict, search_context: dict):
     )
 
     title_divider = ft.Divider(color="white", thickness=1)
-
     event_image = ft.Image(
         src=event.get("image_url", "default_event_image.jpg"),
         width=300,
@@ -279,7 +91,6 @@ def load_event_details(page: ft.Page, event: dict, search_context: dict):
         event_datetime_str = f"{event_date} {event_time}"
         event_datetime = datetime.strptime(event_datetime_str, "%Y-%m-%d %H:%M")
         current_datetime = datetime.now()
-
         if current_datetime > event_datetime:
             return "Closed"
         elif current_datetime.date() == event_datetime.date():
@@ -293,10 +104,9 @@ def load_event_details(page: ft.Page, event: dict, search_context: dict):
         "Ongoing": "#FFEB3B",
         "Closed": "#FF5252"
     }.get(event_status, "white")
-
     event_details = ft.Column(
         controls=[
-            ft.Text(f"Host: {event.get('username', 'Unknown')}", size=20, color="white"),  # Add the username of the event creator
+            ft.Text(f"Host: {event.get('username', 'Unknown')}", size=20, color="white"),
             ft.Text(f"Date: {event.get('date', 'N/A')}", size=20, color="white"),
             ft.Text(f"Time: {event.get('time', 'N/A')}", size=20, color="white"),
             ft.Text(f"Location: {event.get('location', 'N/A')}", size=20, color="white"),
@@ -327,19 +137,58 @@ def load_event_details(page: ft.Page, event: dict, search_context: dict):
 
     def join_event(e):
         """Open the join event form."""
+        print("Adding overlay...")  # Debug statement
+        # Calculate the dimensions of the area we want to blur
+        main_content_left_margin = 290
+        main_content_top_margin = 140
+        main_content_right_margin = 40
+        # Increased width and height to cover the entire yellowish background
+        width_increase = 90  # Adjust this value as needed
+        height_increase = 100  # Adjust this value as needed
+        main_content_width = (
+            page.window_width if hasattr(page, "window_width") else page.width if page.width else 1000
+        ) - main_content_left_margin - main_content_right_margin + width_increase
+        main_content_height = page.height * 0.8 + height_increase
+
+        # Apply the blur effect to the main_content area
+        blur_overlay = ft.Container(
+            bgcolor=ft.colors.with_opacity(0.5, ft.colors.BLACK),
+            width=main_content_width,
+            height=main_content_height,
+            top=main_content_top_margin - (height_increase / 2) + 10,  # Position from the top - adjust for increase AND shift down
+            left=main_content_left_margin - (width_increase / 2),  # Position from the left - adjust for increase
+            content=ft.GestureDetector(on_tap=lambda _: None) #Add gesture detector here!!
+        )
+
+        # Add the overlay to the page overlay so that the header and side taskbar will still be clickable
+        page.overlay.append(blur_overlay)
+        page.update()
+
+        # Load the join event form
         join_event_form.load_join_event_form(
             page,
             title=event.get("name", "Unnamed Event"),
             date=event.get("date", "N/A"),
             time=event.get("time", "N/A"),
             event_id=event.get("id", "N/A"),
-            back_callback=lambda e: close_popup(),  # Close the popup without refreshing the page
-            join_callback=update_join_button  # Pass the callback to update the button text
+            back_callback=close_popup,  # Close the popup without refreshing the page
+            join_callback=update_join_button
         )
 
-    def close_popup():
+    def close_popup(page_instance=None):
+        """Close the join event form and remove blur."""
+        # Remove the blur effect by removing the overlay from the page overlay
         if page.overlay:
-            page.overlay.pop()
+            for control in page.overlay:
+                if isinstance(control, ft.Container) and control.bgcolor == ft.colors.with_opacity(
+                    0.5, ft.colors.BLACK
+                ):
+                    page.overlay.remove(control)
+                    break  # Remove only the first matching overlay
+
+        # Remove the join event form popup
+        join_event_form.close_join_popup(page)
+
         page.update()
 
     def update_join_button():
@@ -347,7 +196,6 @@ def load_event_details(page: ft.Page, event: dict, search_context: dict):
         buttons_row.controls.remove(join_event_button)
         joined_text = ft.Text("Joined Event", size=15, color="white", weight="bold")
         buttons_row.controls.insert(0, joined_text)
-        
         page.data["joined_event"] = True  # Mark the event as joined in page data
         page.update()
 
@@ -364,9 +212,7 @@ def load_event_details(page: ft.Page, event: dict, search_context: dict):
                 on_click=join_event,
                 bgcolor="#C77000",
                 color="white",
-                style=ft.ButtonStyle(
-                    shape=ft.RoundedRectangleBorder(radius=10)
-                )
+                style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=10)),
             )
     else:
         join_event_button = ft.ElevatedButton(
@@ -374,9 +220,7 @@ def load_event_details(page: ft.Page, event: dict, search_context: dict):
             on_click=join_event,
             bgcolor="#C77000",
             color="white",
-            style=ft.ButtonStyle(
-                shape=ft.RoundedRectangleBorder(radius=10)
-            )
+            style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=10))
         )
 
     back_to_search_button = ft.ElevatedButton(
@@ -384,9 +228,7 @@ def load_event_details(page: ft.Page, event: dict, search_context: dict):
         on_click=lambda e: go_back_to_search(page),
         bgcolor="#C77000",
         color="white",
-        style=ft.ButtonStyle(
-            shape=ft.RoundedRectangleBorder(radius=10)
-        )
+        style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=10))
     )
 
     back_to_home_button = ft.ElevatedButton(
@@ -394,14 +236,11 @@ def load_event_details(page: ft.Page, event: dict, search_context: dict):
         on_click=lambda e: go_back_to_homepage(page),
         bgcolor="#C77000",
         color="white",
-        style=ft.ButtonStyle(
-            shape=ft.RoundedRectangleBorder(radius=10)
-        )
+        style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=10))
     )
 
     container_color = "#21582F"  # Taskbar green color
     button_color = "#C77000"
-
     buttons_row = ft.Row(
         controls=[
             back_to_search_button,
@@ -456,7 +295,16 @@ def load_event_details(page: ft.Page, event: dict, search_context: dict):
     page.add(main_stack)
     page.update()
 
+
+def clear_overlay(page: ft.Page):
+    """Clear the overlay (e.g., join event form) from the page."""
+    if page.overlay:
+        page.overlay.clear()
+        page.update()
+
 def go_back_to_search(page: ft.Page):
+    """Go back to the search page and clear the overlay."""
+    clear_overlay(page)  # Clear the overlay before navigating
     search_context = page.data.get("search_context", {})
     query = search_context.get("query", "All")
     search_type = search_context.get("search_type", "global")
@@ -465,5 +313,7 @@ def go_back_to_search(page: ft.Page):
     search.load_search(page, query=query, search_type=search_type, location=location)
 
 def go_back_to_homepage(page: ft.Page):
+    """Go back to the homepage and clear the overlay."""
+    clear_overlay(page)  # Clear the overlay before navigating
     import homepg
     homepg.load_homepage(page)

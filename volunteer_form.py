@@ -43,7 +43,12 @@ def show_volunteer_popup(page, event):
 
     def close_popup(e):
         if page.overlay:
-            page.overlay.pop()
+            # Remove the blur overlay and the popup
+            for control in page.overlay:
+                if isinstance(control, ft.Container) and control.bgcolor == ft.colors.with_opacity(0.5, ft.colors.BLACK):
+                    page.overlay.remove(control)
+                    break
+            page.overlay.pop()  # Remove the popup
         page.update()
 
     def volunteer(e):
@@ -55,7 +60,7 @@ def show_volunteer_popup(page, event):
         controls=[
             ft.Text(f"Volunteer for: {event.get('name', 'Unnamed Event')}", size=24, weight=ft.FontWeight.BOLD, color="#FDF7E3"),
             ft.Text(f"Date: {event.get('date', 'N/A')}", color="#FDF7E3"),
-            ft.Text(f"Location: {event.get('location', 'N/A')}", color="#FDF7E3"),
+            ft.Text(f"Region: {event.get('location', 'N/A')}", color="#FDF7E3"),
             ft.Text(f"Category: {event.get('type', 'Unknown')}", color="#FDF7E3"),
             ft.Row(
                 controls=[
@@ -86,25 +91,37 @@ def show_volunteer_popup(page, event):
         alignment=ft.MainAxisAlignment.CENTER
     )
 
-    # Popup container styled to match join_event_form.py
-    popup = ft.AnimatedSwitcher(
-        duration=500,
+    header_height = 100  # Height of your header
+    popup = ft.Container(
+        alignment=ft.alignment.center,
+        bgcolor="rgba(0,0,0,0.5)",  # Semi-transparent overlay background
+        width=page.width,
+        height=page.height - header_height,  # Only cover below the header
+        top=header_height,  # Position overlay below the header
         content=ft.Container(
-            alignment=ft.alignment.center,
-            expand=True,
-            bgcolor="rgba(0,0,0,0.5)",  # Semi-transparent overlay
-            content=ft.Container(
-                width=380,
-                height=400,
-                padding=ft.padding.all(20),
-                border_radius=10,
-                bgcolor="#406157",  # Matching popup color
-                border=ft.border.all(3, "white"),
-                content=form,
-            ),
+            width=380,
+            height=400,
+            padding=ft.padding.all(20),
+            border_radius=10,
+            bgcolor="#406157",  # Matching popup color
+            border=ft.border.all(3, "white"),
+            content=form,
         ),
     )
 
-    # Add the popup to the page overlay
+
+    # Add a blur overlay that starts below the header
+    header_height = 100  # Height of the header
+    blur_overlay = ft.Container(
+        bgcolor=ft.colors.with_opacity(0.5, ft.colors.BLACK),
+        width=page.width,
+        height=page.height - header_height,  # Adjust height to not cover the header
+        top=header_height,  # Position the overlay below the header
+        left=0,
+        on_click=close_popup  # Close popup when clicking outside
+    )
+
+    # Add the blur overlay and popup to the page overlay
+    page.overlay.append(blur_overlay)
     page.overlay.append(popup)
     page.update()

@@ -6,26 +6,19 @@ from header import load_header
 from volunteer_form import fetch_joined_events, show_volunteer_popup
 import httpx
 
-def fetch_joined_events(page):
-    """Fetch events the user has joined from the server."""
-    username = page.data.get("username")
-    if not username:
-        return []
-
-    try:
-        response = httpx.get(f"http://localhost:8000/my_events?username={username}")
-        response.raise_for_status()
-        return response.json().get("events", [])
-    except httpx.RequestError as exc:
-        print(f"An error occurred while requesting: {exc}")
-        return []
-    except httpx.HTTPStatusError as exc:
-        print(f"Error response {exc.response.status_code} while requesting: {exc.response.json()}")
-        return []
+def clear_overlay(page: ft.Page):
+    """Clear the overlay (e.g., volunteer popup) from the page."""
+    if page.overlay:
+        page.overlay.clear()
+        page.update()
 
 def load_volunteer(page: ft.Page):
     if page.data is None:
         page.data = {}
+
+    # Set flag to track volunteer form activity
+    page.data["volunteer_form_active"] = True
+
 
     page.controls.clear()
     page.bgcolor = "#d6aa54"
@@ -76,7 +69,7 @@ def load_volunteer(page: ft.Page):
                                     ft.Text(event.get("name", "Unnamed Event"), size=22, color=text_color, weight=ft.FontWeight.BOLD),
                                     ft.Text(f"Date: {event.get('date', 'N/A')}", color=text_color),
                                     ft.Text(f"Time: {event.get('time', 'N/A')}", color=text_color),
-                                    ft.Text(f"Location: {event.get('location', 'N/A')}", color=text_color),
+                                    ft.Text(f"Region: {event.get('location', 'N/A')}", color=text_color),
                                     ft.Text(f"Category: {event.get('type', 'Unknown')}", color=text_color),
                                     ft.Text(""),
                                     ft.Text(f"Date Joined: {event.get('joined', 'N/A').split(' ')[0]}", color=text_color)  # Removed alignment arg

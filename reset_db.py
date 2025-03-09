@@ -1,10 +1,13 @@
+'''
+ONLY USED FOR FULL RESET OF MONGODB COLLECTIONS
+'''
+
 from pymongo import MongoClient
 
 client = MongoClient("mongodb+srv://Tanoshi:nathaniel111@eventlink.1hfcs.mongodb.net/")
 db = client["EventLink"]
 
-# List all collections you want to clear
-collections = ["users", "regions", "events", "notifications"]
+collections = ["users", "regions", "events", "notifications"] # if needed to delete others, just add them here
 
 for collection_name in collections:
     collection = db[collection_name]

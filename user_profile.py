@@ -1,6 +1,8 @@
 import flet as ft
 import httpx
 import re
+from homepg import load_homepage
+from login import load_login
 
 # --- Alert Dialog Helpers ---
 def show_alert(page, title, content):
@@ -18,18 +20,54 @@ def close_dialog(page):
     page.update()
 
 # ----------------- Profile Page -----------------
-def show_profile(page: ft.Page):
-    page.bgcolor = "#d6aa54"
+def show_alert(page, title, content):
+    dialog = ft.AlertDialog(
+        title=ft.Text(title),
+        content=ft.Text(content),
+        actions=[ft.TextButton("OK", on_click=lambda e: close_dialog(page))]
+    )
+    page.dialog = dialog
+    page.dialog.open = True
+    page.update()
 
+def close_dialog(page):
+    page.dialog.open = False
+    page.update()
+
+# ----------------- Profile Popup -----------------
+import flet as ft
+import httpx
+import re
+from login import load_login
+
+# --- Alert Dialog Helpers ---
+def show_alert(page, title, content):
+    dialog = ft.AlertDialog(
+        title=ft.Text(title),
+        content=ft.Text(content),
+        actions=[ft.TextButton("OK", on_click=lambda e: close_dialog(page))]
+    )
+    page.dialog = dialog
+    page.dialog.open = True
+    page.update()
+
+def close_dialog(page):
+    page.dialog.open = False
+    page.update()
+
+# ----------------- Profile Popup -----------------
+def show_profile_popup(page: ft.Page):
+    """Show the profile as a popup with a blurred background."""
+    # Create a semi-transparent overlay to simulate the blur effect
+    overlay = ft.Container(
+        bgcolor=ft.colors.with_opacity(0.5, ft.colors.BLACK),  # Semi-transparent black
+        expand=True,  # Cover the entire page
+    )
+
+    # Fetch user data
     username = page.data.get("username") if page.data else None
     if not username:
-        error_view = ft.Column([
-            ft.Text("User not logged in.", color="red", size=20),
-            ft.ElevatedButton("Back to Login", on_click=lambda e: back_to_login(page), bgcolor="transparent", color="white")
-        ], alignment=ft.MainAxisAlignment.CENTER, horizontal_alignment=ft.CrossAxisAlignment.CENTER)
-        page.controls.clear()
-        page.add(error_view)
-        page.update()
+        show_alert(page, "Error", "User not logged in.")
         return
 
     try:
@@ -48,19 +86,13 @@ def show_profile(page: ft.Page):
             "date_joined": doc.get("date_joined", "N/A")
         }
     except Exception as e:
-        error_view = ft.Column([
-            ft.Text("Error retrieving user data.", color="red", size=20),
-            ft.Text(str(e), color="red"),
-            ft.ElevatedButton("Back to Login", on_click=lambda e: back_to_login(page), bgcolor="transparent", color="white")
-        ], alignment=ft.MainAxisAlignment.CENTER, horizontal_alignment=ft.CrossAxisAlignment.CENTER)
-        page.controls.clear()
-        page.add(error_view)
-        page.update()
+        show_alert(page, "Error", f"Error retrieving user data: {e}")
         return
 
     # Store user_data on the page for use in the popups.
     page.user_data = user_data
 
+    # Profile content
     profile_title = ft.Text("Profile Information", size=30, weight=ft.FontWeight.BOLD)
 
     profile_content = ft.Row([
@@ -84,35 +116,15 @@ def show_profile(page: ft.Page):
         ft.Row([ft.Icon(ft.icons.HOME, color="#FFBA00"), ft.Text(f"Address: {user_data['address']}", size=18)])
     ], spacing=10)
 
-    # transactions_section = ft.Column([
-    #     ft.Row([
-    #         ft.Icon(ft.icons.ACCOUNT_BALANCE_WALLET, color="#FFBA00"),
-    #         ft.TextButton(
-    #             "View My Wallet",
-    #             on_click=lambda e: view_wallet(page),
-    #             style=ft.ButtonStyle(
-    #                 color=ft.colors.WHITE,
-    #                 text_style=ft.TextStyle(size=18)
-    #             )
-    #         )
-    #     ]),
-    #     ft.Row([
-    #         ft.Icon(ft.icons.RECEIPT_LONG, color="#FFBA00"),
-    #         ft.TextButton(
-    #             "My Transactions",
-    #             on_click=lambda e: view_transactions(page),
-    #             style=ft.ButtonStyle(
-    #                 color=ft.colors.WHITE,
-    #                 text_style=ft.TextStyle(size=18)
-    #             )
-    #         )
-    #     ])
-    # ], spacing=10)
-
-    # Check for missing fields (incomplete details) excluding main email and contact
+    # Check for incomplete fields
     incomplete_fields = any(value in ["N/A", "-"] for key, value in user_data.items() if key not in ["username", "date_joined", "email", "contact"])
     if incomplete_fields:
-        note_text = ft.Text("Note: Some profile details are incomplete. Please update for better security.", size=14, color="yellow")
+        note_text = ft.Text(
+            "Note: Some profile details are incomplete. Please update for better security.",
+            size=14,
+            color="yellow",
+            text_align=ft.TextAlign.CENTER,
+        )
         update_button = ft.TextButton(
             "Update Profile",
             icon=ft.icons.EDIT_NOTE_SHARP,
@@ -123,41 +135,56 @@ def show_profile(page: ft.Page):
                 text_style=ft.TextStyle(size=18)
             )
         )
-        edit_buttons_section = ft.Row(
-            controls=[note_text, update_button],
-            spacing=20,
-            alignment=ft.MainAxisAlignment.CENTER
+        action_buttons = ft.Column(
+            controls=[
+                note_text,  # Message about profile completeness
+                update_button,  # Update Profile button
+                ft.TextButton(
+                    "Back",
+                    icon=ft.icons.ARROW_BACK,
+                    icon_color="#FFBA00",
+                    on_click=lambda e: close_profile_popup(page),
+                    style=ft.ButtonStyle(
+                        color=ft.colors.WHITE,
+                        text_style=ft.TextStyle(size=18)
+                    )
+                ),
+            ],
+            spacing=10,
+            alignment=ft.MainAxisAlignment.CENTER,
         )
     else:
-        edit_buttons_section = ft.TextButton(
-            "Edit Profile",
-            icon=ft.icons.EDIT,
-            icon_color="#FFBA00",
-            on_click=lambda e: full_edit_profile(page),
-            style=ft.ButtonStyle(
-                color=ft.colors.WHITE,
-                text_style=ft.TextStyle(size=18)
-            )
+        # After updating, reposition the Edit Profile button
+        action_buttons = ft.Column(
+            controls=[
+                ft.TextButton(
+                    "Edit Profile",
+                    icon=ft.icons.EDIT,
+                    icon_color="#FFBA00",
+                    on_click=lambda e: full_edit_profile(page),
+                    style=ft.ButtonStyle(
+                        color=ft.colors.WHITE,
+                        text_style=ft.TextStyle(size=18)
+                    )
+                ),
+                ft.Container(height=20),  # Blank space
+                ft.TextButton(
+                    "Back",
+                    icon=ft.icons.ARROW_BACK,
+                    icon_color="#FFBA00",
+                    on_click=lambda e: close_profile_popup(page),
+                    style=ft.ButtonStyle(
+                        color=ft.colors.WHITE,
+                        text_style=ft.TextStyle(size=18)
+                    )
+                ),
+            ],
+            spacing=10,
+            alignment=ft.MainAxisAlignment.CENTER,
         )
-
-    back_to_home_container = ft.Container(
-        content=ft.TextButton(
-            "Back to Home",
-            icon=ft.icons.EXIT_TO_APP,
-            icon_color="#FFBA00",
-            on_click=lambda e: back_to_home(page),
-            style=ft.ButtonStyle(
-                color=ft.colors.WHITE,
-                text_style=ft.TextStyle(size=18)
-            )
-        ),
-        alignment=ft.alignment.bottom_left,
-        expand=True,
-    )
 
     vertical_divider = ft.VerticalDivider(color="white", thickness=2)
 
-    # "About Me" Section
     about_me_title = ft.Text("About Me", size=26, weight=ft.FontWeight.BOLD, color="white")
     about_me = ft.Container(
         content=ft.Text("Describe Yourself!", color="white", size=18),
@@ -165,27 +192,23 @@ def show_profile(page: ft.Page):
         padding=15,
         border_radius=10,
         width=420,
-        height=160,
+        height=450,
     )
-
-    # "Activity Log" Section
-    activity_log_title = ft.Text("Activity Log", size=26, weight=ft.FontWeight.BOLD, color="white")
-    activity_log = ft.Container(
-        content=ft.Text("Recent Activities", color="white", size=18),
-        bgcolor="#406157",
-        padding=15,
-        border_radius=10,
-        width=420,  
-        height=380,  
+    edit_description = ft.TextButton(
+        "Edit Description",
+        icon=ft.icons.EDIT,
+        icon_color="#FFBA00",
+        style=ft.ButtonStyle(
+            color=ft.colors.WHITE,
+            text_style=ft.TextStyle(size=18)
+        )
     )
 
     side_column = ft.Column([
         about_me_title,
         about_me,
-        ft.Divider(color="white", thickness=2),
-        activity_log_title,
-        activity_log,
-    ], spacing=20, width=420) 
+        edit_description
+    ], spacing=20, width=420)
 
     full_profile_container = ft.Container(
         content=ft.Row([
@@ -194,29 +217,42 @@ def show_profile(page: ft.Page):
                 profile_content,
                 ft.Divider(color="white", thickness=2),
                 credentials_section,
-                # ft.Divider(color="white", thickness=2),
-                # transactions_section,
                 ft.Divider(color="white", thickness=2),
-                edit_buttons_section,
-                back_to_home_container
+                action_buttons,  # Use the organized action buttons here
             ], spacing=20, expand=True),
-            vertical_divider, 
-            side_column  
+            vertical_divider,
+            side_column
         ], alignment=ft.MainAxisAlignment.START, expand=True),
         bgcolor="#063628",
         padding=ft.padding.all(20),
         border_radius=10,
         border=ft.border.all(2, "white"),
-        width=page.width * 0.9,
-        height=page.height * 0.9,
-        alignment=ft.alignment.top_center,
-        margin=ft.margin.only(left=70, top=30)
+        width=page.width * 0.7,
+        height=page.height * 0.7,
+        alignment=ft.alignment.center,
     )
 
-    page.controls.clear()
-    page.add(ft.Row([full_profile_container], alignment=ft.MainAxisAlignment.START))
+    # Stack the overlay and the profile container
+    stack = ft.Stack(
+        controls=[
+            overlay,  # Semi-transparent overlay
+            ft.Container(
+                content=full_profile_container,
+                alignment=ft.alignment.center,
+                expand=True,
+            )
+        ],
+        expand=True,
+    )
+
+    # Add the stack to the page overlay
+    page.overlay.append(stack)
     page.update()
 
+def close_profile_popup(page: ft.Page):
+    """Close the profile popup."""
+    page.overlay.clear()
+    page.update()
 # ----------------- Update Popup (Missing Fields Only) -----------------
 def edit_profile(page: ft.Page):
     # This popup shows only missing fields (for updating incomplete profile info)
@@ -246,6 +282,20 @@ def edit_profile(page: ft.Page):
                     label_style=ft.TextStyle(color="#FDF7E3"),
                     border_color="#D4A937",
                     content_padding=ft.padding.all(10)
+                )
+            elif key == "gender":  # Changed from else to elif to handle gender
+                missing_fields_controls[key] = ft.Dropdown(
+                    label=label,
+                    options=[
+                        ft.dropdown.Option("Male"),
+                        ft.dropdown.Option("Female"),
+                        ft.dropdown.Option("Preferred not to say"),
+                    ],
+                    width=350,
+                    text_style=ft.TextStyle(color="#FDF7E3"),
+                    label_style=ft.TextStyle(color="#FDF7E3"),
+                    border_color="#D4A937",
+                    content_padding=ft.padding.all(10),
                 )
             else:
                 missing_fields_controls[key] = ft.TextField(
@@ -311,7 +361,8 @@ def edit_profile(page: ft.Page):
         
         updated_values = {}
         for key, field in missing_fields_controls.items():
-            val = field.value.strip()
+             # Access value differently for TextField vs. Dropdown
+            val = field.value if isinstance(field, ft.TextField) else field.value
             if val:
                 updated_values[key] = val
         if not updated_values:
@@ -328,7 +379,6 @@ def edit_profile(page: ft.Page):
                 page.user_data[key] = value
             print("Profile updated successfully")
             close_edit_popup(page, popup)
-            show_profile(page)
         except Exception as ex:
             print("Error updating profile:", ex)
     
@@ -381,105 +431,135 @@ def edit_profile(page: ft.Page):
     )
     page.overlay.append(popup)
     page.update()
+    popup.content.opacity = 1
+    popup.update()
 
-# ----------------- Full Edit Popup (All Editable Fields) -----------------
+def close_edit_popup(page, popup):
+    popup.content.opacity = 0
+    popup.update()
+    page.overlay.remove(popup)
+    page.update()
+
+# ----------------- Full Edit Popup -----------------
 def full_edit_profile(page: ft.Page):
-    # This popup shows all editable fields (excluding date joined, main email, and main contact)
     user_data = page.user_data if hasattr(page, "user_data") else {}
+    edit_fields_controls = {}
+    error_labels = {}
 
-    backup_email_field = ft.TextField(
-        label="Backup Email",
-        hint_text="Enter Backup Email",
-        width=350,
-        value=user_data.get("backup_email", "") if user_data.get("backup_email", "N/A") not in ["N/A", "-"] else "",
-        text_style=ft.TextStyle(color="#FDF7E3"),
-        label_style=ft.TextStyle(color="#FDF7E3"),
-        border_color="#D4A937",
-        content_padding=ft.padding.all(10)
-    )
-    backup_number_field = ft.TextField(
-        label="Backup Number",
-        hint_text="Enter Backup Number",
-        width=350,
-        value=user_data.get("backup_number", "") if user_data.get("backup_number", "N/A") not in ["N/A", "-"] else "",
-        text_style=ft.TextStyle(color="#FDF7E3"),
-        label_style=ft.TextStyle(color="#FDF7E3"),
-        border_color="#D4A937",
-        content_padding=ft.padding.all(10)
-    )
-    address_field = ft.TextField(
-        label="Address",
-        hint_text="Street, City, Province",
-        width=350,
-        value=user_data.get("address", "") if user_data.get("address", "N/A") not in ["N/A", "-"] else "",
-        text_style=ft.TextStyle(color="#FDF7E3"),
-        label_style=ft.TextStyle(color="#FDF7E3"),
-        border_color="#D4A937",
-        content_padding=ft.padding.all(10)
-    )
-    
-    # Create error labels for each field
-    backup_email_error = ft.Text("", color="red", size=12)
-    backup_number_error = ft.Text("", color="red", size=12)
-    address_error = ft.Text("", color="red", size=12)
-    
-    # Wrap each field with its error message for uniform spacing
-    backup_email_column = ft.Column(controls=[backup_email_field, backup_email_error], spacing=2)
-    backup_number_column = ft.Column(controls=[backup_number_field, backup_number_error], spacing=2)
-    address_column = ft.Column(controls=[address_field, address_error], spacing=2)
-    
-    form_content = ft.Column(
-        controls=[backup_email_column, backup_number_column, address_column],
-        spacing=15
-    )
-    
+    # Define credentials (including Contact) with Gender first
+    credentials = [
+        ("Gender", "gender"),
+        ("Email", "email"),
+        ("Backup Email", "backup_email"),
+        ("Contact", "contact"),
+        ("Backup Number", "backup_number"),
+        ("Address", "address")
+    ]
+
+    for label, key in credentials:
+        error_labels[key] = ft.Text("", color="red", size=12)
+        
+        if key == "contact":
+            edit_fields_controls[key] = ft.TextField(
+                label=label,
+                hint_text=f"Enter {label}",
+                value=user_data.get(key, ""),
+                width=350,
+                input_filter=ft.InputFilter(regex_string=r"\d", allow=True),
+                max_length=11,
+                text_style=ft.TextStyle(color="#FDF7E3"),
+                label_style=ft.TextStyle(color="#FDF7E3"),
+                border_color="#D4A937",
+                content_padding=ft.padding.all(10)
+            )
+        elif key == "gender":
+            edit_fields_controls[key] = ft.Dropdown(
+                label=label,
+                options=[
+                    ft.dropdown.Option("Male"),
+                    ft.dropdown.Option("Female"),
+                    ft.dropdown.Option("Preferred not to say"),
+                ],
+                value=user_data.get(key, ""),  # Set initial value
+                width=350,
+                text_style=ft.TextStyle(color="#FDF7E3"),
+                label_style=ft.TextStyle(color="#FDF7E3"),
+                border_color="#D4A937",
+                content_padding=ft.padding.all(10),
+            )
+        else:
+            edit_fields_controls[key] = ft.TextField(
+                label=label,
+                hint_text=f"Enter {label}",
+                value=user_data.get(key, ""),
+                width=350,
+                text_style=ft.TextStyle(color="#FDF7E3"),
+                label_style=ft.TextStyle(color="#FDF7E3"),
+                border_color="#D4A937",
+                content_padding=ft.padding.all(10)
+            )
+
+    columns = []
+    for key in edit_fields_controls:
+        columns.append(ft.Column(controls=[edit_fields_controls[key], error_labels[key]], spacing=2))
+
+    form_content = ft.Column(controls=columns, spacing=15)
+
     def on_save(e):
-        # Reset error messages and border colors to default
-        backup_email_error.value = ""
-        backup_number_error.value = ""
-        address_error.value = ""
-        backup_email_field.border_color = "#FDF7E3"
-        backup_number_field.border_color = "#FDF7E3"
-        address_field.border_color = "#FDF7E3"
-        
+        # Reset error messages and border colors
+        for key in error_labels:
+            error_labels[key].value = ""
+            edit_fields_controls[key].border_color = "#FDF7E3"
         errors = False
+
+        # Validate Contact: must be exactly 11 digits.
+        if "contact" in edit_fields_controls:
+            contact_val = edit_fields_controls["contact"].value.strip()
+            if contact_val and (not contact_val.isdigit() or len(contact_val) != 11):
+                error_labels["contact"].value = "Contact number must be exactly 11 digits."
+                edit_fields_controls["contact"].border_color = "red"
+                errors = True
         
-        backup_email = backup_email_field.value.strip()
-        if backup_email and not re.match(r"[^@]+@[^@]+\.[^@]+", backup_email):
-            backup_email_error.value = "Invalid backup email format. Use user@example.com."
-            backup_email_field.border_color = "red"
-            errors = True
+        # Validate Backup Email
+        if "backup_email" in edit_fields_controls:
+            backup_email_val = edit_fields_controls["backup_email"].value.strip()
+            if backup_email_val and not re.match(r"[^@]+@[^@]+\.[^@]+", backup_email_val):
+                error_labels["backup_email"].value = "Invalid backup email format. Use user@example.com."
+                edit_fields_controls["backup_email"].border_color = "red"
+                errors = True
         
-        backup_number = backup_number_field.value.strip()
-        if backup_number and not (backup_number.isdigit() and len(backup_number) == 11):
-            backup_number_error.value = "Backup number must be exactly 11 digits."
-            backup_number_field.border_color = "red"
-            errors = True
+        # Validate Backup Number
+        if "backup_number" in edit_fields_controls:
+            backup_number_val = edit_fields_controls["backup_number"].value.strip()
+            if backup_number_val and (not backup_number_val.isdigit() or len(backup_number_val) != 11):
+                error_labels["backup_number"].value = "Backup number must be exactly 11 digits."
+                edit_fields_controls["backup_number"].border_color = "red"
+                errors = True
         
-        address = address_field.value.strip()
-        if address and not re.match(r"^.+,\s*.+,\s*.+$", address):
-            address_error.value = "Address must be in format: Street, City, Province."
-            address_field.border_color = "red"
-            errors = True
-        
-        page.update()  # Update the popup to reflect error messages
-        
+        # Validate Address: expects "Street, City, Province"
+        if "address" in edit_fields_controls:
+            address_val = edit_fields_controls["address"].value.strip()
+            if address_val and not re.match(r"^.+,\s*.+,\s*.+$", address_val):
+                error_labels["address"].value = "Address must be in format: Street, City, Province."
+                edit_fields_controls["address"].border_color = "red"
+                errors = True
+
+        page.update()
         if errors:
             print("Validation errors encountered.")
             return
-        
+
         updated_values = {}
-        if backup_email:
-            updated_values["backup_email"] = backup_email
-        if backup_number:
-            updated_values["backup_number"] = backup_number
-        if address:
-            updated_values["address"] = address
-        
+        for key, field in edit_fields_controls.items():
+            # Access value differently for TextField vs. Dropdown
+            val = field.value if isinstance(field, ft.TextField) else field.value
+            if val:
+                updated_values[key] = val
+
         if not updated_values:
             print("No updates provided")
             return
-        
+
         try:
             response = httpx.patch(
                 f"http://127.0.0.1:8000/update_user?username={user_data.get('username')}",
@@ -487,29 +567,30 @@ def full_edit_profile(page: ft.Page):
                 timeout=10.0
             )
             response.raise_for_status()
+            # Update user_data on the page with new values
             for key, value in updated_values.items():
                 page.user_data[key] = value
             print("Profile updated successfully")
-            close_edit_popup(page, popup)
-            show_profile(page)
+            close_full_edit_popup(page, popup)
         except Exception as ex:
             print("Error updating profile:", ex)
-    
+
     popup = ft.AnimatedSwitcher(
-    duration=500,
-    content=ft.Container(
-        alignment=ft.alignment.center,
-        expand=True,
-        bgcolor="rgba(0,0,0,0.5)",
+        duration=500,
         content=ft.Container(
-            margin=ft.margin.only(left=500, right=500, top=250, bottom=250),
-            padding=20,
-            border_radius=10,
-            bgcolor="#406157",
-            border=ft.border.all(3, "white"),
-            content=ft.Column(
+            alignment=ft.alignment.center,
+            expand=True,
+            bgcolor="rgba(0,0,0,0.5)",
+            content=ft.Container(
+                margin=ft.margin.only(left=500, right=500, top=100, bottom=100),
+                padding=20,
+                border_radius=10,
+                bgcolor="#406157",
+                border=ft.border.all(3, "white"),
+                height=700, # Adjust this value
+                content=ft.Column(
                     controls=[
-                        ft.Text("Edit Profile", size=24, weight=ft.FontWeight.BOLD, color="#FDF7E3"),
+                        ft.Text("Update Profile", size=24, weight=ft.FontWeight.BOLD, color="#FDF7E3"),
                         form_content,
                             ft.Row(
                                 controls=[
@@ -530,11 +611,11 @@ def full_edit_profile(page: ft.Page):
                                     style=ft.ButtonStyle(
                                         shape=ft.RoundedRectangleBorder(radius=10)
                                     )
-                                )
-                            ],
-                        spacing=20,
-                        alignment=ft.MainAxisAlignment.CENTER
-                    )
+                                    )
+                                ],
+                            spacing=20,
+                            alignment=ft.MainAxisAlignment.CENTER,
+                        )
                     ],
                     spacing=20,
                     horizontal_alignment=ft.CrossAxisAlignment.CENTER
@@ -545,22 +626,18 @@ def full_edit_profile(page: ft.Page):
 
     page.overlay.append(popup)
     page.update()
+    popup.content.opacity = 1
+    popup.update()
 
-def close_edit_popup(page: ft.Page, popup: ft.Control):
-    if popup in page.overlay:
-        page.overlay.remove(popup)
+def close_full_edit_popup(page, popup):
+    popup.content.opacity = 0
+    popup.update()
+    page.overlay.remove(popup)
     page.update()
 
-def view_wallet(page: ft.Page):
-    print("View My Wallet clicked")
-
-def view_transactions(page: ft.Page):
-    print("My Transactions clicked")
+# ----------------- Navigation Functions -----------------
+def back_to_home(page: ft.Page):
+    load_homepage(page)  # Directly load the homepage
 
 def back_to_login(page: ft.Page):
-    import login
-    login.load_login(page)
-
-def back_to_home(page: ft.Page):
-    import homepg
-    homepg.main(page)
+    load_login(page)

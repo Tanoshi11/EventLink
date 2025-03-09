@@ -5,6 +5,13 @@ import time
 from datetime import datetime
 from header import load_header  # Import the header
 
+def clear_overlay(page: ft.Page):
+    """Clear the overlay (e.g., join event form) from the page."""
+    if page.overlay:
+        page.overlay.clear()
+        page.update()
+
+
 def load_event_details(page, event):
     """Load event details when an event container is clicked."""
     import event_details
@@ -17,6 +24,7 @@ def load_event_details(page, event):
     event_details.load_event_details(page, event, search_context)
 
 def load_search(page, query, search_type="global", location=None):
+    clear_overlay(page)  # Clear the overlay before loading the search page
     # Initialize page.data as a dictionary
     if page.data is None:
         page.data = {}
@@ -30,7 +38,7 @@ def load_search(page, query, search_type="global", location=None):
     if search_type == "category":
         heading_text = f"Category: {query}"
     elif location:
-        heading_text = f"Search Results: {query} ; Location: {location}"
+        heading_text = f"Search Results: {query} ; Region: {location}"
     else:
         heading_text = f"Search Results: {query}"
 
@@ -86,22 +94,23 @@ def load_search(page, query, search_type="global", location=None):
         controls=[
             ft.Text("Filters", color="white", size=20, weight=ft.FontWeight.BOLD),
             ft.Text("Category", color="white", size=16, weight=ft.FontWeight.W_600),
+            category_row(ft.Icons.BRUSH, "Arts"),
             category_row(ft.Icons.BUSINESS_CENTER, "Business"),
-            category_row(ft.Icons.RESTAURANT, "Food & Drink"),
-            category_row(ft.Icons.CHILD_CARE, "Family & Education"),
+            category_row(ft.Icons.FAVORITE, "Charity"),
+            category_row(ft.Icons.LOCAL_LIBRARY, "Community"),
+            category_row(ft.Icons.SCHOOL, "Education"),
+            category_row(ft.Icons.THEATER_COMEDY, "Entertainment"),
+            category_row(ft.Icons.ECO, "Environment"),
+            category_row(ft.Icons.RESTAURANT, "Food"),
+            category_row(ft.Icons.GAMES, "Gaming"),
             category_row(ft.Icons.HEALTH_AND_SAFETY, "Health"),
-            category_row(ft.Icons.DIRECTIONS_BOAT, "Travel"),
             category_row(ft.Icons.MUSIC_NOTE, "Music"),
-            category_row(ft.Icons.THEATER_COMEDY, "Performing Arts"),
-            category_row(ft.Icons.STYLE, "Fashion"),
-            category_row(ft.Icons.MOVIE, "Film & Media"),
-            category_row(ft.Icons.COLOR_LENS, "Hobbies"),
-            category_row(ft.Icons.HOME, "Home & Lifestyle"),
-            category_row(ft.Icons.GROUP, "Community"),
-            category_row(ft.Icons.VOLUNTEER_ACTIVISM, "Charity & Causes"),
-            category_row(ft.Icons.ACCOUNT_BALANCE, "Government"),
+            category_row(ft.Icons.GAVEL, "Politics"),
+            category_row(ft.Icons.SPORTS_SOCCER, "Sports"),
+            category_row(ft.Icons.DEVICES, "Technology"),
+            category_row(ft.Icons.FLIGHT, "Travel"),
         ],
-        spacing=15,
+        spacing=12,
         alignment=ft.MainAxisAlignment.START
     )
 
@@ -125,7 +134,7 @@ def load_search(page, query, search_type="global", location=None):
             location = page.data.get("location")
 
             # Debugging: Print the current search context
-            print(f"Fetching events - Query: '{query}', Type: '{search_type}', Location: '{location}'")
+            print(f"Fetching events - Query: '{query}', Type: '{search_type}', Region: '{location}'")
 
             # Build the URL
             if search_type == "category":
@@ -166,7 +175,7 @@ def load_search(page, query, search_type="global", location=None):
             return "Upcoming"
 
     def load_events():
-        time.sleep(0.5)  # Optional delay
+        time.sleep(0.2)  # Optional delay
         events = fetch_events()
 
         # Debugging: Print the number of events fetched
@@ -194,7 +203,7 @@ def load_search(page, query, search_type="global", location=None):
                             ft.Text(f"Status: {event_status}", color=status_color, weight=ft.FontWeight.BOLD),
                             ft.Text(f"Date: {ev.get('date', '')}", color="white"),
                             ft.Text(f"Time: {ev.get('time', '')}", color="white"),
-                            ft.Text(f"Location: {ev.get('location', '')}", color="white"),
+                            ft.Text(f"Region: {ev.get('location', '')}", color="white"),
                             ft.Text(f"Category: {ev.get('type', 'Unknown')}", color="white"),  # Use 'type' instead of 'category'
                         ],
                         spacing=5

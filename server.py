@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException, Query
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, EmailStr
 from pymongo import MongoClient
 import bcrypt
@@ -17,21 +18,41 @@ notifications_collection = db["notifications"]
 
 print(list(events_collection.find({})))
 
-# Updated Luzon regions list
-Luzon_regions = [
-    "Ilocos/Ilocandia",
-    "Cagayan Valley/Northern Luzon",
-    "Cordillera Administrative Region (CAR)",
-    "Central Luzon",
+# Updated Luzon, Visayas, and Mindanao regions list
+regions = [
     "National Capital Region (NCR)",
-    "Southern Tagalog Regions-4A (Cavite, Laguna, Batangas, Rizal, and Quezon)",
-    "Southern Tagalog Regions-4B (Mindoro, Marinduque, Romblon, and Palawan)",
-    "Bicol/Bicolandia"
+    "Cordillera Administrative Region (CAR)",
+    "Ilocos Region (Region I)",
+    "Cagayan Valley (Region II)",
+    "Central Luzon (Region III)",
+    "CALABARZON (Region IV-A)",
+    "MIMAROPA (Region IV-B)",
+    "Bicol Region (Region V)",
+    "Western Visayas (Region VI)",
+    "Negros Island Region (NIR)",
+    "Central Visayas (Region VII)",
+    "Eastern Visayas (Region VIII)",
+    "Zamboanga Peninsula (Region IX)",
+    "Northern Mindanao (Region X)",
+    "Davao Region (Region XI)",
+    "Soccsksargen (Region XII)",
+    "Caraga (Region XIII)",
+    "Bangsamoro Autonomous Region in Muslim Mindanao (BARMM)"
 ]
+
+print("All regions:", regions)  # Debug print
 
 # Force update regions collection on server start
 regions_collection.delete_many({})
-regions_collection.insert_many([{"name": region} for region in Luzon_regions])
+regions_collection.insert_many([{"name": region} for region in regions])
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allows all origins
+    allow_credentials=True,
+    allow_methods=["*"],  # Allows all methods
+    allow_headers=["*"],  # Allows all headers
+)
 
 @app.get("/get_user")
 def get_user(username: str):
@@ -43,8 +64,7 @@ def get_user(username: str):
 
 @app.get("/regions")
 def get_regions():
-    """Fetch all Luzon regions"""
-    regions = [region["name"] for region in regions_collection.find()]
+    """Fetch all regions (Luzon, Visayas, and Mindanao)"""
     return {"regions": regions}
 
 @app.get("/search_events")
@@ -279,6 +299,25 @@ def get_profile(username: str):
     if not profile:
         raise HTTPException(status_code=404, detail="User not found.")
     return profile
+
+class UpdateUserRequest(BaseModel):
+    gender: Optional[str] = None
+    backup_email: Optional[str] = None
+    backup_number: Optional[str] = None
+    address: Optional[str] = None
+
+@app.patch("/update_user")
+def update_user(username: str, update_data: UpdateUserRequest):
+    user = users_collection.find_one({"username": username})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    update_values = {k: v for k, v in update_data.dict().items() if v is not None}
+    if not update_values:
+        raise HTTPException(status_code=400, detail="No fields to update")
+
+    users_collection.update_one({"username": username}, {"$set": update_values})
+    return {"message": "User updated successfully"}
 
 @app.post("/logout")
 def logout(username: str):
