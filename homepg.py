@@ -8,6 +8,12 @@ from search import load_search
 notif_popup = None
 events_text = ft.Text("", color="white")
 
+def clear_overlay(page: ft.Page):
+    """Clear the overlay (e.g., join event form) from the page."""
+    if page.overlay:
+        page.overlay.clear()
+        page.update()
+
 def main(page: ft.Page):
     if page.data is None:
         page.data = {}
@@ -152,6 +158,7 @@ def main(page: ft.Page):
 
     # Helper function: returns a clickable row with an icon and label
     def category_row(icon_name: str, label: str):
+        """Create a clickable category row."""
         return ft.Container(
             content=ft.Row(
                 controls=[
@@ -163,37 +170,34 @@ def main(page: ft.Page):
             ),
             padding=ft.padding.all(5),
             on_click=lambda e: handle_category_click(e, label),
-            ink=True,  # adds a ripple effect when clicked
+            ink=True,
             border_radius=ft.border_radius.all(5),
         )
 
-    # Header texts for the sidebar
-    filters_text = ft.Text("Filters", color="white", size=20, weight=ft.FontWeight.BOLD)
-    category_text = ft.Text("Category", color="white", size=16, weight=ft.FontWeight.W_600)
-
-    # Build the list of category items
+    
     category_buttons = ft.Column(
-        controls=[
-            filters_text,
-            category_text,
-            category_row(ft.Icons.BUSINESS_CENTER, "Business"),
-            category_row(ft.Icons.RESTAURANT, "Food & Drink"),
-            category_row(ft.Icons.CHILD_CARE, "Family & Education"),
-            category_row(ft.Icons.HEALTH_AND_SAFETY, "Health"),
-            category_row(ft.Icons.DIRECTIONS_BOAT, "Travel"),
-            category_row(ft.Icons.MUSIC_NOTE, "Music"),
-            category_row(ft.Icons.THEATER_COMEDY, "Performing Arts"),
-            category_row(ft.Icons.STYLE, "Fashion"),
-            category_row(ft.Icons.MOVIE, "Film & Media"),
-            category_row(ft.Icons.COLOR_LENS, "Hobbies"),
-            category_row(ft.Icons.HOME, "Home & Lifestyle"),
-            category_row(ft.Icons.GROUP, "Community"),
-            category_row(ft.Icons.VOLUNTEER_ACTIVISM, "Charity & Causes"),
-            category_row(ft.Icons.ACCOUNT_BALANCE, "Government"),
-        ],
-        spacing=15,
-        alignment=ft.MainAxisAlignment.START
-    )
+    controls=[
+        ft.Text("Filters", color="white", size=20, weight=ft.FontWeight.BOLD),
+        ft.Text("Category", color="white", size=16, weight=ft.FontWeight.W_600),
+        category_row(ft.Icons.BRUSH, "Arts"),
+        category_row(ft.Icons.BUSINESS_CENTER, "Business"),
+        category_row(ft.Icons.FAVORITE, "Charity"),
+        category_row(ft.Icons.LOCAL_LIBRARY, "Community"),
+        category_row(ft.Icons.SCHOOL, "Education"),
+        category_row(ft.Icons.THEATER_COMEDY, "Entertainment"),
+        category_row(ft.Icons.ECO, "Environment"),
+        category_row(ft.Icons.RESTAURANT, "Food"),
+        category_row(ft.Icons.GAMES, "Gaming"),
+        category_row(ft.Icons.HEALTH_AND_SAFETY, "Health"),
+        category_row(ft.Icons.MUSIC_NOTE, "Music"),
+        category_row(ft.Icons.GAVEL, "Politics"),
+        category_row(ft.Icons.SPORTS_SOCCER, "Sports"),
+        category_row(ft.Icons.DEVICES, "Technology"),
+        category_row(ft.Icons.FLIGHT, "Travel"),
+    ],
+    spacing=12,
+    alignment=ft.MainAxisAlignment.START
+)
 
     # Create the sidebar container
     side_taskbar = ft.Container(
@@ -283,7 +287,6 @@ def main(page: ft.Page):
     page.add(main_stack)
     page.update()
 
-
 def load_homepage(page):
     page.controls.clear()
     main(page)
@@ -304,10 +307,11 @@ def load_create_event(page):
     CreateEvents.load_create_event(page)  # Calls the function without re-running ft.app()
     page.update()
 
-
 def load_profile(page):
     page.floating_action_button = None
     pass
+
+
 
 if __name__ == "__main__":
     ft.app(target=main)

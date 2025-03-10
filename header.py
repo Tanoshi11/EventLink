@@ -6,12 +6,27 @@ import time
 # Global variable for the notifications popup
 notif_popup = None
 
+def clear_overlay(page: ft.Page):
+    """Clear the overlay (e.g., join event form) from the page."""
+    if page.overlay:
+        page.overlay.clear()
+        page.update()
+        
+
+def show_profile_page(e):
+    """Open the profile as a popup."""
+    page = e.control.page  # Access the page object from the event
+    import user_profile
+    user_profile.show_profile_popup(page)  # Pass the page object to the popup function
+
 def get_regions():
     """Fetch regions from the server."""
     try:
         response = httpx.get("http://localhost:8000/regions")
         if response.status_code == 200:
-            return response.json()["regions"]
+            regions = response.json()["regions"]
+            print("Fetched regions:", regions)  # Debug print
+            return regions
     except Exception as ex:
         print("Error fetching regions:", ex)
     return []
@@ -28,13 +43,6 @@ def load_header(page: ft.Page):
             import login
             login.load_login(page)
         threading.Thread(target=delayed_logout).start()
-
-    def show_profile_page(e):
-        def delayed_profile():
-            time.sleep(1)
-            import user_profile
-            user_profile.show_profile(page)
-        threading.Thread(target=delayed_profile).start()
 
     def close_notifications(e):
         global notif_popup
@@ -122,53 +130,39 @@ def load_header(page: ft.Page):
         page.overlay.append(notif_popup)
         page.update()
 
-    def get_current_location(e):
-        """Fetch user's current location using Geolocation API."""
-        def on_success(position):
-            lat = position.coords.latitude
-            lon = position.coords.longitude
-            page.data["location"] = f"{lat},{lon}"
-            page.update()
-            search_events(e)  # Trigger search with the new location
-
-        def on_error(error):
-            page.snack_bar = ft.SnackBar(
-                content=ft.Text("Failed to get location. Please select a region manually."),
-                open=True
-            )
-            page.update()
-
-        page.window.navigator.geolocation.getCurrentPosition(on_success, on_error)
-
-    # In header.py
     def search_events(e):
         """Trigger search when the user selects a region or presses Enter."""
         query = search_bar.value.strip() if search_bar.value else "All"
         location = region_dropdown.value
 
         # Debugging: Print the query and location
-        print(f"Search triggered - Query: '{query}', Location: '{location}'")
+        print(f"Search triggered - Query: '{query}', Region: '{location}'")
 
         # Call load_search in search.py directly
         from search import load_search
         load_search(page, query, search_type="global", location=location)
 
     # ----------------- Build the Header UI -----------------
+    # Fetch regions from the server
     regions = get_regions()
+
+    # Create the dropdown with all regions
     region_dropdown = ft.Dropdown(
         options=[ft.dropdown.Option(region) for region in regions],
-        hint_text="Select Location",
+        hint_text="Select Region",
         expand=True,
-        border_color="white",
-        on_change=search_events  # Trigger search when region is selected
+        border_color="white",  # Dark green border
+        bgcolor="#0C3B2E",  # Dark green background
+        color="white",  # White text
+        menu_height=320,
     )
 
     search_bar = ft.TextField(
         hint_text="Search events",
         border=None,
         expand=True,
-        text_style=ft.TextStyle(size=18, color="white"),
-        border_radius=20,
+        text_style=ft.TextStyle(size=17, color="white"),
+        border_radius=5,
         border_color="white",
         on_submit=search_events  # Trigger search when pressing Enter
     )
@@ -178,10 +172,10 @@ def load_header(page: ft.Page):
             ft.Container(width=15),
             # Clickable logo to go home
             ft.Container(
-                content=ft.Image(src="images/eventlink.png", width=200, height=80, fit=ft.ImageFit.CONTAIN),
-                margin=ft.margin.only(right=10),
-                on_click=lambda e: __import__("homepg").load_homepage(page)
-            ),
+                    content=ft.Image(src="images/eventlink.png", width=200, height=80, fit=ft.ImageFit.CONTAIN),
+                    margin=ft.margin.only(right=10),
+                    on_click=lambda e: (clear_overlay(page), __import__("homepg").load_homepage(page))
+                ),
             # Search & Location container
             ft.Container(
                 content=ft.Row(
@@ -191,12 +185,6 @@ def load_header(page: ft.Page):
                         ft.VerticalDivider(width=1, color="white"),
                         ft.Icon(name=ft.Icons.LOCATION_ON, color="white", size=30),
                         region_dropdown,
-                        ft.IconButton(  # Add "Use My Location" button
-                            icon=ft.icons.MY_LOCATION,
-                            icon_color="white",
-                            tooltip="Use my current location",
-                            on_click=get_current_location,
-                        )
                     ],
                     alignment=ft.MainAxisAlignment.SPACE_BETWEEN
                 ),
@@ -229,16 +217,15 @@ def load_header(page: ft.Page):
                                 ft.Icon(name=ft.Icons.CALENDAR_TODAY, color="white", size=15),
                                 ft.Text("My Events", style=ft.TextStyle(color="white", size=15))
                             ]),
-                            on_click=lambda e: __import__("homepg").load_my_events(page)
+                            on_click=lambda e: (clear_overlay(page), __import__("homepg").load_my_events(page))
                         ),
                         ft.PopupMenuItem(
                             content=ft.Row([
                                 ft.Icon(name=ft.Icons.EVENT_NOTE, color="white", size=15),
                                 ft.Text("Create Event", style=ft.TextStyle(color="white", size=15))
                             ]),
-                            on_click=lambda e: __import__("CreateEvents").load_create_event(page)
+                            on_click=lambda e: (clear_overlay(page), __import__("CreateEvents").load_create_event(page))
                         ),
-                        # In header.py (find the "Events" PopupMenuButton)
                         ft.PopupMenuItem(
                             content=ft.Row(
                                 controls=[
@@ -247,7 +234,7 @@ def load_header(page: ft.Page):
                                 ],
                                 spacing=5
                             ),
-                            on_click=lambda e: __import__("volunteer").load_volunteer(page)
+                            on_click=lambda e: (clear_overlay(page), __import__("volunteer").load_volunteer(page))
                         )
                     ]
                 ),
@@ -288,7 +275,7 @@ def load_header(page: ft.Page):
                                 ],
                                 spacing=5
                             ),
-                            on_click=show_profile_page
+                            on_click=lambda e: (clear_overlay(page), show_profile_page(e))
                         ),
                         ft.PopupMenuItem(
                             content=ft.Row(
@@ -298,7 +285,7 @@ def load_header(page: ft.Page):
                                 ],
                                 spacing=5
                             ),
-                            on_click=logout
+                            on_click=lambda e: (clear_overlay(page), logout(e))
                         )
                     ]
                 ),

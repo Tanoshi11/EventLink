@@ -1,5 +1,5 @@
 import flet as ft
-import pymongo
+import httpx
 from datetime import datetime, timedelta
 
 # Define theme colors
@@ -12,19 +12,17 @@ DARK_RED = "#8B0000"
 MUSTARD_YELLOW = "#B8860B"
 GREEN = "#008000"
 
-# MongoDB Connection
-MONGO_URI = "mongodb+srv://samanthaangelacrn:eventlink@eventlink.1hfcs.mongodb.net/?retryWrites=true&w=majority&appName=EventLink"
-client = pymongo.MongoClient(MONGO_URI)
-db = client["EventLink"]
-collection = db["events"]
-
-def fetch_events():
-    """Fetch events from MongoDB and return them as a list of dictionaries."""
+def fetch_events(username):
+    """Fetch events the user has joined from the server."""
     try:
-        events = list(collection.find({}, {"_id": 0, "name": 1, "date": 1}))
-        return events
-    except Exception as ex:
-        print("Error fetching events:", ex)
+        response = httpx.get(f"http://localhost:8000/my_events?username={username}")
+        response.raise_for_status()
+        return response.json().get("events", [])
+    except httpx.RequestError as exc:
+        print(f"An error occurred while requesting: {exc}")
+        return []
+    except httpx.HTTPStatusError as exc:
+        print(f"Error response {exc.response.status_code} while requesting: {exc.response.json()}")
         return []
 
 def load_my_events(page: ft.Page):
@@ -33,7 +31,8 @@ def load_my_events(page: ft.Page):
     page.bgcolor = SECONDARY_COLOR
     page.padding = 20
 
-    events = fetch_events()
+    username = page.data.get("username")
+    events = fetch_events(username)
     current_date = datetime.now().date()
 
     three_months_ago = current_date - timedelta(days=90)

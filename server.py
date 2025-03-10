@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException, Query
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, EmailStr
 from pymongo import MongoClient
 import bcrypt
@@ -14,38 +15,56 @@ users_collection = db["users"]
 regions_collection = db["regions"]
 events_collection = db["events"]
 notifications_collection = db["notifications"]
-myevents_collection = db["myevents"]
 
 print(list(events_collection.find({})))
 
-@app.get("/get_user")
-def get_user(username: str = Query(...)):
-    """Fetch user data by username."""
-    user = users_collection.find_one({"username": username}, {"_id": 0})
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    return user
-
-# Updated Luzon regions list
-Luzon_regions = [
-    "Ilocos/Ilocandia",
-    "Cagayan Valley/Northern Luzon",
-    "Cordillera Administrative Region (CAR)",
-    "Central Luzon",
+# Updated Luzon, Visayas, and Mindanao regions list
+regions = [
     "National Capital Region (NCR)",
-    "Southern Tagalog Regions-4A (Cavite, Laguna, Batangas, Rizal, and Quezon)",
-    "Southern Tagalog Regions-4B (Mindoro, Marinduque, Romblon, and Palawan)",
-    "Bicol/Bicolandia"
+    "Cordillera Administrative Region (CAR)",
+    "Ilocos Region (Region I)",
+    "Cagayan Valley (Region II)",
+    "Central Luzon (Region III)",
+    "CALABARZON (Region IV-A)",
+    "MIMAROPA (Region IV-B)",
+    "Bicol Region (Region V)",
+    "Western Visayas (Region VI)",
+    "Negros Island Region (NIR)",
+    "Central Visayas (Region VII)",
+    "Eastern Visayas (Region VIII)",
+    "Zamboanga Peninsula (Region IX)",
+    "Northern Mindanao (Region X)",
+    "Davao Region (Region XI)",
+    "Soccsksargen (Region XII)",
+    "Caraga (Region XIII)",
+    "Bangsamoro Autonomous Region in Muslim Mindanao (BARMM)"
 ]
+
+print("All regions:", regions)  # Debug print
 
 # Force update regions collection on server start
 regions_collection.delete_many({})
-regions_collection.insert_many([{"name": region} for region in Luzon_regions])
+regions_collection.insert_many([{"name": region} for region in regions])
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allows all origins
+    allow_credentials=True,
+    allow_methods=["*"],  # Allows all methods
+    allow_headers=["*"],  # Allows all headers
+)
+
+@app.get("/get_user")
+def get_user(username: str):
+    user = users_collection.find_one({"username": username}, {"_id": 0})
+    if user:
+        return user
+    else:
+        raise HTTPException(status_code=404, detail="User not found")
 
 @app.get("/regions")
 def get_regions():
-    """Fetch all Luzon regions"""
-    regions = [region["name"] for region in regions_collection.find()]
+    """Fetch all regions (Luzon, Visayas, and Mindanao)"""
     return {"regions": regions}
 
 @app.get("/search_events")
@@ -83,6 +102,19 @@ def search_events(query: str = Query(...), region: str = None):
             filter_query["location"] = {"$regex": escaped_region, "$options": "i"}
         events = list(events_collection.find(filter_query, {"_id": 0}))
 
+    # Add event status based on the current date and time
+    for event in events:
+        event_datetime_str = f"{event['date']} {event['time']}"
+        event_datetime = datetime.strptime(event_datetime_str, "%Y-%m-%d %H:%M")
+        current_datetime = datetime.now()
+
+        if current_datetime > event_datetime:
+            event["status"] = "Closed"
+        elif current_datetime.date() == event_datetime.date():
+            event["status"] = "Ongoing"
+        else:
+            event["status"] = "Upcoming"
+
     print(f"Found {len(events)} events.")  # Debugging
     if not events:
         raise HTTPException(status_code=404, detail="No events found matching the criteria.")
@@ -95,6 +127,20 @@ def search_events_by_category(category: str):
         {"type": {"$regex": f"^{category}$", "$options": "i"}},  # Case-insensitive exact match
         {"_id": 0}
     ))
+
+    # Add event status based on the current date and time
+    for event in events:
+        event_datetime_str = f"{event['date']} {event['time']}"
+        event_datetime = datetime.strptime(event_datetime_str, "%Y-%m-%d %H:%M")
+        current_datetime = datetime.now()
+
+        if current_datetime > event_datetime:
+            event["status"] = "Closed"
+        elif current_datetime.date() == event_datetime.date():
+            event["status"] = "Ongoing"
+        else:
+            event["status"] = "Upcoming"
+
     if not events:
         raise HTTPException(status_code=404, detail="No events found for this category.")
     return {"events": events}
@@ -103,6 +149,20 @@ def search_events_by_category(category: str):
 def display_events():
     """Fetch all available events"""
     events = list(events_collection.find({}, {"_id": 0}))
+
+    # Add event status based on the current date and time
+    for event in events:
+        event_datetime_str = f"{event['date']} {event['time']}"
+        event_datetime = datetime.strptime(event_datetime_str, "%Y-%m-%d %H:%M")
+        current_datetime = datetime.now()
+
+        if current_datetime > event_datetime:
+            event["status"] = "Closed"
+        elif current_datetime.date() == event_datetime.date():
+            event["status"] = "Ongoing"
+        else:
+            event["status"] = "Upcoming"
+
     if not events:
         raise HTTPException(status_code=404, detail="No events found.")
     return {"events": events}
@@ -146,21 +206,29 @@ def register(user: UserRegister):
     elif email_exists:
         raise HTTPException(status_code=400, detail="Email already exists")
 
+    # Delete existing notifications for the username
+    notifications_collection.delete_many({"username": user.username})
+
     hashed_password = bcrypt.hashpw(user.password.encode(), bcrypt.gensalt())
-    users_collection.insert_one({
+    user_data = {
         "username": user.username,
         "email": user.email,
         "contact": user.contact,
         "password": hashed_password.decode(),
         "gender": user.gender,
-        "date_joined": datetime.now().strftime("%Y-%m-%d")
-    })
+        "date_joined": datetime.now().strftime("%Y-%m-%d"),
+        "description": "Describe Yourself!"
+    }
+    users_collection.insert_one(user_data)
     
-    notifications_collection.insert_one({
+    # Create a welcome notification with date and time
+    current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    welcome_notification = {
         "username": user.username,
-        "message": "Welcome to EventLink! Thank you for signing up.",
-        "date": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    })
+        "message": f"Welcome to EventLink! Thank you for signing up.\n------------------------\n{current_time}",
+        "date": current_time
+    }
+    notifications_collection.insert_one(welcome_notification)
 
     return {"message": "Registration successful"}
 
@@ -168,61 +236,59 @@ def register(user: UserRegister):
 def get_all_events():
     """Fetch all events"""
     events = list(events_collection.find({}, {"_id": 0}))
+
+    # Add event status based on the current date and time
+    for event in events:
+        event_datetime_str = f"{event['date']} {event['time']}"
+        event_datetime = datetime.strptime(event_datetime_str, "%Y-%m-%d %H:%M")
+        current_datetime = datetime.now()
+
+        if current_datetime > event_datetime:
+            event["status"] = "Closed"
+        elif current_datetime.date() == event_datetime.date():
+            event["status"] = "Ongoing"
+        else:
+            event["status"] = "Upcoming"
+
     return {"events": events}
 
 @app.get("/my_events")
 def get_my_events(username: str):
     """Fetch events the user has joined"""
     events = list(events_collection.find(
-        {"participants": username},  # Assuming "participants" field exists
+        {"participants.username": username},  # Ensure this matches the structure used in join_event
         {"_id": 0}
     ))
+
+    # Add event status based on the current date and time
+    for event in events:
+        event_datetime_str = f"{event['date']} {event['time']}"
+        event_datetime = datetime.strptime(event_datetime_str, "%Y-%m-%d %H:%M")
+        current_datetime = datetime.now()
+
+        if current_datetime > event_datetime:
+            event["status"] = "Closed"
+        elif current_datetime.date() == event_datetime.date():
+            event["status"] = "Ongoing"
+        else:
+            event["status"] = "Upcoming"
+
+        # Retrieve joined date for the current user from participants
+        for participant in event.get("participants", []):
+            if isinstance(participant, dict) and participant.get("username") == username:
+                event["joined"] = participant.get("joined")
+                break
+        else:
+            event["joined"] = "N/A"
+
     if not events:
         raise HTTPException(404, "No joined events found")
     return {"events": events}
 
-class JoinEventRequest(BaseModel):
-    event_id: str
-    title: str
-    date: str
-    time: str
-    username: str  # Username of the user joining
-
-@app.post("/join_event")
-def join_event(request: JoinEventRequest):
-    # If username is missing, user is not logged in.
-    if not request.username:
-        raise HTTPException(status_code=401, detail="Login required to join events.")
-
-    username = request.username
-
-    # Check if the user has already joined this event.
-    existing_entry = myevents_collection.find_one({"username": username, "event_id": request.event_id})
-    if existing_entry:
-        raise HTTPException(status_code=400, detail="You have already joined this event.")
-
-    # Insert the joined event into the myevents collection.
-    myevents_collection.insert_one({
-        "username": username,
-        "event_id": request.event_id,
-        "title": request.title,
-        "date": request.date,
-        "time": request.time
-    })
-
-    return {"message": "Successfully joined the event!"}
-
-@app.get("/joined_event")
-def joined_event(username: str, event_id: str):
-    """Return whether the user has joined a given event."""
-    entry = myevents_collection.find_one({"username": username, "event_id": event_id})
-    return {"joined": bool(entry)}
-
-
 @app.get("/notifications")
 def get_notifications(username: str):
-    """Fetch the user's notifications."""
-    notifications = list(notifications_collection.find({"username": username}, {"_id": 0}))
+    """Fetch the user's notifications, sorted by date in descending order."""
+    notifications = list(notifications_collection.find({"username": username}, {"_id": 0}).sort("date", -1))
     if not notifications:
         raise HTTPException(status_code=404, detail="No notifications found for this user.")
     return {"notifications": notifications}
@@ -234,6 +300,26 @@ def get_profile(username: str):
     if not profile:
         raise HTTPException(status_code=404, detail="User not found.")
     return profile
+
+class UpdateUserRequest(BaseModel):
+    gender: Optional[str] = None
+    backup_email: Optional[str] = None
+    backup_number: Optional[str] = None
+    address: Optional[str] = None
+    description: Optional[str] = None  # Added field
+
+@app.patch("/update_user")
+def update_user(username: str, update_data: UpdateUserRequest):
+    user = users_collection.find_one({"username": username})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    update_values = {k: v for k, v in update_data.dict().items() if v is not None}
+    if not update_values:
+        raise HTTPException(status_code=400, detail="No fields to update")
+
+    users_collection.update_one({"username": username}, {"$set": update_values})
+    return {"message": "User updated successfully"}
 
 @app.post("/logout")
 def logout(username: str):
@@ -262,10 +348,44 @@ class Event(BaseModel):
 @app.post("/create_event")
 def create_event(event: Event):
     try:
-        events_collection.insert_one(event.dict())
+        event_data = event.dict()
+        event_data["created_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        events_collection.insert_one(event_data)
         return {"message": "Event created successfully"}
     except Exception as ex:
         raise HTTPException(status_code=500, detail=f"Error creating event: {ex}")
+
+from pydantic import BaseModel
+
+class JoinEventRequest(BaseModel):
+    username: str
+    event_name: str
+
+@app.post("/join_event")
+def join_event(request: JoinEventRequest):
+    event = events_collection.find_one({"name": request.event_name})
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found.")
+
+    participants = event.get("participants", [])
+    if any(isinstance(p, dict) and p.get("username") == request.username for p in participants):
+        raise HTTPException(status_code=400, detail="User already joined this event.")
+
+    current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    events_collection.update_one(
+        {"name": request.event_name},
+        {"$push": {"participants": {"username": request.username, "joined": current_time}}}
+    )
+
+    notification = {
+        "username": request.username,
+        "message": f"You have joined the event: {request.event_name}\n------------------------\n{current_time}",
+        "date": current_time
+    }
+    notifications_collection.insert_one(notification)
+    print(f"Notification created: {notification}")  # Debug print
+
+    return {"message": "Event joined successfully"}
 
 if __name__ == "__main__":
     import uvicorn

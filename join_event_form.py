@@ -1,24 +1,16 @@
 import flet as ft
 import httpx
+from datetime import datetime
 
-def load_join_event_form(page, event_id, title, date, time, back_callback):
-    # Check if the user is logged in by checking if username is stored in page.data.
-    username = page.data.get("username") if page.data else None
-    if not username:
-        # Redirect to login if no user is logged in.
-        import login
-        login.load_login(page)
-        return
-
-    # Create a read-only field for the user's name.
+def load_join_event_form(page, event_id, title, date, time, back_callback, join_callback):
+    # Text fields with styling to match user_profile.py
     event_attend_name = ft.TextField(
         label="Name",
         width=300,
-        value=username,
-        read_only=True,
         text_style=ft.TextStyle(color="#FDF7E3"),
         label_style=ft.TextStyle(color="#FDF7E3"),
-        border_color="#D4A937"
+        border_color="#D4A937",
+        hint_text="Enter your name"
     )
 
     event_ticket_tobuy = ft.TextField(
@@ -31,60 +23,56 @@ def load_join_event_form(page, event_id, title, date, time, back_callback):
         hint_text="Enter a number"
     )
 
-    join_button = ft.ElevatedButton(
-        "Join Event",
-        bgcolor="#C77000",
-        color="white",
-        style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=10))
-    )
-
     def submit_form(e):
-        if not event_ticket_tobuy.value or not event_ticket_tobuy.value.isdigit():
+        error_found = False
+        # Validate name
+        if not event_attend_name.value:
+            event_attend_name.error_text = "Name is required."
+            error_found = True
+        else:
+            event_attend_name.error_text = None
+
+        # Validate tickets
+        if not event_ticket_tobuy.value:
+            event_ticket_tobuy.error_text = "Number of tickets is required."
+            error_found = True
+        elif not event_ticket_tobuy.value.isdigit():
             event_ticket_tobuy.error_text = "Please enter a valid number."
-            page.update()
+            error_found = True
+        else:
+            event_ticket_tobuy.error_text = None
+
+        page.update()
+
+        if error_found:
             return
 
-        # Prepare the data to send
-        data = {
-            "event_id": event_id,
-            "title": title,
-            "date": date,
-            "time": time,
-            "username": username
-        }
+        print("Submitting join request for:", event_attend_name.value, event_ticket_tobuy.value)
 
-        try:
-            response = httpx.post(
-                "http://127.0.0.1:8000/join_event",
-                json=data,
-                timeout=10.0
-            )
-            response.raise_for_status()
+        # Send join event API request
+        username = page.data.get("username")
+        join_data = {"username": username, "event_name": title}
+        response = httpx.post("http://localhost:8000/join_event", json=join_data)
 
-            # Hide the join button after successful join.
-            join_button.visible = False
-            page.update()
-
-            # Show success notification.
+        if response.status_code == 200:
+            joined_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             page.snack_bar = ft.SnackBar(
-                content=ft.Text(f"Successfully joined {title}!"),
-                bgcolor="green"
+                ft.Column([
+                    ft.Text(f"You have joined the event: {title}", color="white"),
+                    ft.Text(f"Date: {joined_date}", size=12, color="white")
+                ])
             )
             page.snack_bar.open = True
             page.update()
 
-        except httpx.HTTPStatusError as exc:
-            error_msg = exc.response.json().get("detail", "Error joining event.")
-            page.snack_bar = ft.SnackBar(
-                content=ft.Text(f"Error: {error_msg}"),
-                bgcolor="red"
-            )
-            page.snack_bar.open = True
-            page.update()
+            # Call the join_callback to update the button text
+            join_callback()
+        else:
+            print("Error joining event:", response.json())
 
-    # Assign the submit_form function to the join button.
-    join_button.on_click = submit_form
+        close_join_popup(page)
 
+    # Build the form layout
     form = ft.Column(
         controls=[
             ft.Text(f"Join Event: {title}", size=24, weight=ft.FontWeight.BOLD, color="#FDF7E3"),
@@ -92,32 +80,62 @@ def load_join_event_form(page, event_id, title, date, time, back_callback):
             ft.Text(f"Time: {time}", color="#FDF7E3"),
             event_attend_name,
             event_ticket_tobuy,
-            ft.Row([join_button], alignment=ft.MainAxisAlignment.CENTER)  # Centered button row.
+            ft.Row(
+                [
+                    ft.ElevatedButton(
+                        "Submit",
+                        on_click=submit_form,
+                        bgcolor="#C77000",
+                        color="white",
+                        style=ft.ButtonStyle(
+                            shape=ft.RoundedRectangleBorder(radius=10)
+                        ),
+                    ),
+                    ft.ElevatedButton(
+                        "Back",
+                        on_click=lambda e: close_join_popup(page),
+                        bgcolor="#C77000",
+                        color="white",
+                        style=ft.ButtonStyle(
+                            shape=ft.RoundedRectangleBorder(radius=10)
+                        ),
+                    ),
+                ],
+                spacing=20,
+                alignment=ft.MainAxisAlignment.CENTER,
+            ),
         ],
         spacing=20,
         alignment=ft.MainAxisAlignment.CENTER,
     )
 
+    # Create the popup container
     popup = ft.Container(
-        alignment=ft.alignment.center,
-        expand=True,
-        bgcolor="rgba(0,0,0,0.5)",  # Semi‐transparent overlay
-        content=ft.Container(
-            width=500,
-            height=480,
-            padding=ft.padding.all(20),
-            border_radius=10,
-            bgcolor="#406157",  # Matching popup background color
-            border=ft.border.all(3, "white"),
-            content=form,
+        content=ft.Column(
+            controls=[
+                ft.Container(
+                    width=380,
+                    height=480,
+                    padding=ft.padding.all(20),
+                    border_radius=10,
+                    bgcolor="#406157",  # Match your profile popup color
+                    border=ft.border.all(3, "white"),
+                    content=form,
+                ),
+            ],
+            alignment=ft.MainAxisAlignment.CENTER,
         ),
+        alignment=ft.alignment.center,
+        top=230,  # Adjust the top position to avoid covering the header
+        left=630,  # Adjust the left position to avoid covering the side taskbar
     )
 
+    # Add the popup to the page overlay so it appears on top of existing content
     page.overlay.append(popup)
     page.update()
 
-def close_join_popup(page, back_callback):
+def close_join_popup(page):
+    """Close the join event form and clear the overlay."""
     if page.overlay:
-        page.overlay.pop()
-    page.update()
-    back_callback(page)
+        page.overlay.clear()
+        page.update()
