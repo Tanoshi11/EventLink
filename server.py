@@ -118,7 +118,7 @@ def search_events(query: str = Query(...), region: str = None):
         ##-------
 
 
-        event_datetime_str = f"{event['date']} {event['time']}"
+        event_datetime_str = f"{event['date']} {start_time}"
         event_datetime = datetime.strptime(event_datetime_str, "%Y-%m-%d %H:%M")
         current_datetime = datetime.now()
 
