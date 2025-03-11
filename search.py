@@ -161,18 +161,50 @@ def load_search(page, query, search_type="global", location=None):
             print(f"Error in fetch_events: {ex}")
             return []
 
-    def get_event_status(event_date, event_time):
+    def get_event_status(event_date, time_range):
         """Determine the status of the event based on the current date and time."""
-        event_datetime_str = f"{event_date} {event_time}"
-        event_datetime = datetime.strptime(event_datetime_str, "%Y-%m-%d %H:%M")
-        current_datetime = datetime.now()
+        try:
+            #--------2
 
-        if current_datetime > event_datetime:
-            return "Closed"
-        elif current_datetime.date() == event_datetime.date():
-            return "Ongoing"
-        else:
-            return "Upcoming"
+            if isinstance(time_range, list):
+                time_range = time_range[0]
+
+            if " - " in time_range:
+                start_time_str, end_time_str = [s.strip() for s in time_range.split(" - ", 1)]
+            else:
+            
+                start_time_str = time_range
+                end_time_str = time_range
+
+            start_dt_str = f"{event_date} {start_time_str}"
+            end_dt_str   = f"{event_date} {end_time_str}"
+
+            start_dt = datetime.strptime(start_dt_str, "%Y-%m-%d %H:%M")
+            end_dt   = datetime.strptime(end_dt_str, "%Y-%m-%d %H:%M")
+
+            now = datetime.now()
+
+
+
+
+            #----------
+            if now < start_dt:
+                return "Upcoming"
+            elif start_dt <= now <= end_dt:
+                return "Ongoing"
+            else:
+                return "Closed"
+        
+        except Exception as ex:
+            print(f"Error in get_event_status: {ex}")
+            return "Unknown"
+
+            #start_time = event_time.split(" - ")[0] if " - " in event_time else event_time
+            #event_datetime_str = f"{event_date} {start_time}"
+            #event_datetime = datetime.strptime(event_datetime_str, "%Y-%m-%d %H:%M")
+           # current_datetime = datetime.now()
+            
+    
 
     def load_events():
         time.sleep(0.2)  # Optional delay
@@ -189,6 +221,21 @@ def load_search(page, query, search_type="global", location=None):
                 # Debugging: Print each event's data
                 print("Event data:", ev)
 
+                #----------
+
+
+                time_value = ev["time"]
+                if " - " in time_value:
+                    start_time = time_value.split(" - ",1)
+                else:
+                    start_time = time_value
+                    
+
+                #time_range = (f"{start_time} - {end_time}") if start_time and end_time else (start_time or end_time)
+
+                #--------
+
+
                 event_status = get_event_status(ev.get("date", ""), ev.get("time", ""))
                 status_color = {
                     "Upcoming": "#4CAF50",
@@ -203,7 +250,9 @@ def load_search(page, query, search_type="global", location=None):
                             ft.Text(f"Status: {event_status}", color=status_color, weight=ft.FontWeight.BOLD),
                             ft.Text(f"Date: {ev.get('date', '')}", color="white"),
                             ft.Text(f"Time: {ev.get('time', '')}", color="white"),
+                            #------
                             ft.Text(f"Region: {ev.get('location', '')}", color="white"),
+                            #-------
                             ft.Text(f"Category: {ev.get('type', 'Unknown')}", color="white"),  # Use 'type' instead of 'category'
                         ],
                         spacing=5
