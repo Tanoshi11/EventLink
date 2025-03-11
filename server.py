@@ -104,6 +104,20 @@ def search_events(query: str = Query(...), region: str = None):
 
     # Add event status based on the current date and time
     for event in events:
+
+        #-----
+
+        time_value = event["time"]
+        if " - " in time_value:
+            start_time = time_value.split(" - ")[0].strip()
+        else:
+            start_time = time_value.strip()
+
+
+
+        ##-------
+
+
         event_datetime_str = f"{event['date']} {event['time']}"
         event_datetime = datetime.strptime(event_datetime_str, "%Y-%m-%d %H:%M")
         current_datetime = datetime.now()
@@ -130,7 +144,18 @@ def search_events_by_category(category: str):
 
     # Add event status based on the current date and time
     for event in events:
-        event_datetime_str = f"{event['date']} {event['time']}"
+
+        #-------
+        time_value = event["time"]
+        if " - " in time_value:
+            start_time = time_value.split(" - ",1)[0].strip()
+
+        else:
+            start_time = time_value.strip()
+
+        #-------
+
+        event_datetime_str = f"{event['date']} {start_time}"
         event_datetime = datetime.strptime(event_datetime_str, "%Y-%m-%d %H:%M")
         current_datetime = datetime.now()
 
@@ -337,10 +362,12 @@ def create_notification(notification: Notification):
     return {"message": "Notification created"}
 
 class Event(BaseModel):
+    host: str
     name: str
     type: str
     date: str
     time: str
+    guest_limit: int
     location: str
     description: str
     created_at: str
