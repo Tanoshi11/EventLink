@@ -184,6 +184,7 @@ def main(page: ft.Page):
         options=[ft.dropdown.Option(region) for region in luzon_regions]
     )
     event_attendees = TextField(label="Guest Limit", width=400)
+    event_ticket_price = TextField(label ="Ticket Price ", width=400)
     event_description = TextField(label="Description", multiline=True, width=400, height=100)
 
     def submit_form(e):
@@ -231,6 +232,20 @@ def main(page: ft.Page):
             except ValueError:
                 event_attendees.error_text = "Guest Limit must be a number."
                 error_found = True
+        
+        #--- ticket price error handle
+       
+        if not event_ticket_price.value:
+            event_ticket_price.error_text = "Ticket Price is required."
+            error_found = True
+        else:
+            try:
+                ticket_price = int(event_ticket_price.value)
+                event_ticket_price.error_text = None
+            except ValueError:
+                event_ticket_price.error_text = "Ticket must be a number."
+                error_found = True
+
 
         #------time start error
         time_start_error = validate_time(time_start_field.value)
@@ -264,6 +279,7 @@ def main(page: ft.Page):
             "date": event_date.value,
             "time": f"{time_start_field.value} - {time_end_field.value}",
             "guest_limit": guest_limit,
+            "ticket_price": ticket_price,
             "location": event_location.value,
             "description": event_description.value,
             "created_at": datetime.datetime.now().isoformat()
@@ -277,6 +293,7 @@ def main(page: ft.Page):
                 time_start_field.value = ""
                 time_end_field.value = ""
                 event_attendees.value = ""
+                event_ticket_price.value = ""
                 event_description.value = ""
                 event_type.value = ""
                 event_location.value = ""
@@ -301,6 +318,7 @@ def main(page: ft.Page):
             event_date,
             time_row,
             event_attendees,
+            event_ticket_price,
             event_location,
             event_description,
             ElevatedButton(

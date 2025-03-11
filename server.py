@@ -366,6 +366,7 @@ class Event(BaseModel):
     name: str
     type: str
     date: str
+    ticket_price: int
     time: str
     guest_limit: int
     location: str
