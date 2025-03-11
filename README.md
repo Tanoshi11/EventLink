@@ -4,13 +4,16 @@ Follow these instructions to set up and run the platform on Ubuntu WSL.
 
 ---
 
-## 1. Install Python and pip
+## 1. Install Python,Git and pip
 
 Open your Ubuntu WSL terminal and run:
 
 ```bash
 sudo apt update
-sudo apt install python3 python3-pip python3-venv
+sudo apt install python3
+sudo apt install python3-pip
+sudo apt install python3-venv
+sudo apt install git-all
 ```
 
 Verify the installation:
@@ -18,11 +21,37 @@ Verify the installation:
 ```bash
 python3 --version
 pip3 --version
+git --version
 ```
 
 If you don’t have pip installed, install it using the commands above after installing Python.
 
-## 2. Clone the GitHub Repository
+## 2. Setting up Git and Connecting to Github
+Note: Github account is need. 
+
+Open your Ubuntu WSL terminal and run:
+```bash
+git config --global user.name [input your username]
+git config --global user.email [input your email]
+```
+For cheking: run
+```bash
+git config --list
+```
+user.email and user.name must be in the output
+
+Proceed to Step 3 if using https when cloning. Do the steps below when using SSH
+
+## To generate SSH key and Connect to github
+```bash
+
+ssh-keygen -t rsa 
+ls -l ~/.ssh/ 
+cat ~/.ssh/id_rsa.pub [copy and paste the ssh key in github found in settings]
+```
+Testing for connecton: ssh -T git@github.com 
+
+## 3. Clone the GitHub Repository
 
 Navigate to your desired directory and clone the repository:
 
@@ -33,7 +62,7 @@ cd <repository_folder>
 
 Replace <YOUR_GITHUB_REPO_URL> with the actual URL of your repository, and <repository_folder> with the name of the cloned folder.
 
-## 3. Create and Activate a Virtual Environment
+## 4. Create and Activate a Virtual Environment
 
 Create a virtual environment to manage dependencies:
 
@@ -49,13 +78,19 @@ source eventlink/bin/activate
 
 Your prompt should now display (eventlink) indicating the virtual environment is active.
 
-## 4. Install Project Dependencies
+## 5. Install Project Dependencies
 
 ```bash
-pip install flet fastapi uvicorn pymongo bcrypt httpx pydantic[email]
+pip install flet
+pip install fastapi
+pip install uvicorn
+pip install pymongo
+pip install bcrypt
+pip install httpx
+pip install pydantic[email]
 ```
 
-## 5. Run the FastAPI Server
+## 6. Run the FastAPI Server
 
 The server code is located in server.py. In your terminal (or open a new tab/window), navigate to the project folder (and activate the virtual environment if needed), then run:
 
@@ -65,7 +100,7 @@ python3 -m uvicorn server:app --reload
 
 This starts the FastAPI server (typically at http://127.0.0.1:8000).
 
-## 6. Run the Application (Login Page)
+## 7. Run the Application (Login Page)
 
 In another terminal window or tab (with the virtual environment activated), navigate to your project folder and run:
 
@@ -75,7 +110,7 @@ python3 login.py
 
 This will launch the login page of the application.
 
-## 7. Additional Notes
+## 8. Additional Notes
 
 - **Order of Operations:** Ensure the FastAPI server (**server.py**) is running before launching **login.py**.
 - **Virtual Environment:** Always run `source env/bin/activate` in your terminal before executing project commands.

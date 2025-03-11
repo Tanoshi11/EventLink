@@ -3,10 +3,10 @@ import pymongo
 from datetime import datetime, timedelta
 
 # Define theme colors
-PRIMARY_COLOR = "#6d9773"       # Accent green
-SECONDARY_COLOR = "#0c3b2e"     # Dark green (used for headers/forms)
-ACCENT_COLOR = "#b46617"        # Warm accent (for text or titles)
-HIGHLIGHT_COLOR = "#ffba00"     # Highlight yellow
+PRIMARY_COLOR = "#6d9773"
+SECONDARY_COLOR = "#0c3b2e"
+ACCENT_COLOR = "#b46617"
+HIGHLIGHT_COLOR = "#ffba00"
 WHITE = "#ffffff"
 DARK_RED = "#8B0000"
 MUSTARD_YELLOW = "#B8860B"
@@ -33,15 +33,12 @@ def load_my_events(page: ft.Page):
     page.bgcolor = SECONDARY_COLOR
     page.padding = 20
 
-    # Fetch events from MongoDB
     events = fetch_events()
     current_date = datetime.now().date()
 
-    # Define 3-month range
     three_months_ago = current_date - timedelta(days=90)
     three_months_later = current_date + timedelta(days=90)
 
-    # Categorize events
     past_events, current_events, upcoming_events = [], [], []
 
     for event in events:
@@ -58,7 +55,6 @@ def load_my_events(page: ft.Page):
         except Exception as e:
             print(f"Error parsing event date: {e}")
 
-    # Header
     header = ft.Container(
         content=ft.Row([
             ft.Text("My Events", size=30, weight=ft.FontWeight.BOLD, color=SECONDARY_COLOR, expand=True),
@@ -76,7 +72,6 @@ def load_my_events(page: ft.Page):
         homepg.main(page)
         page.update()
     
-    # Event Section Function
     def event_section(title, events, bg_color):
         return ft.Container(
             content=ft.Column([
@@ -89,15 +84,14 @@ def load_my_events(page: ft.Page):
             expand=True,
         )
 
-    # Event Containers
     event_container = ft.Container(
         content=ft.Column([
             ft.Row([
-                event_section("Current Events", current_events, GREEN), #(Last 3 Months - Next 3 Months)
+                event_section("Current Events", current_events, GREEN),
             ], spacing=10, expand=True),
             ft.Row([
-                event_section("Upcoming Events", upcoming_events, MUSTARD_YELLOW), # (After 3 Months)
-                event_section("Past Events", past_events, DARK_RED), #(More than 3 Months Ago)
+                event_section("Upcoming Events", upcoming_events, MUSTARD_YELLOW),
+                event_section("Past Events", past_events, DARK_RED),
             ], spacing=10, expand=True)
         ], spacing=10, alignment=ft.MainAxisAlignment.CENTER),
         bgcolor=WHITE,
@@ -107,7 +101,6 @@ def load_my_events(page: ft.Page):
         height=400,
     )
 
-    # Event Stats Button
     def go_stats(e, page):
         import analytics
         page.controls.clear()
@@ -124,7 +117,6 @@ def load_my_events(page: ft.Page):
         on_click=lambda e: go_stats(e, page),
     )
 
-    # Calendar Section
     calendar = ft.Container(
         content=ft.Text("📅 Calendar (Placeholder)", size=18, weight=ft.FontWeight.BOLD, color="black"),
         bgcolor=WHITE,
@@ -133,7 +125,6 @@ def load_my_events(page: ft.Page):
         width=350  
     )
 
-    # Volunteer Analytics Button
     volunteer_button = ft.Container(
         content=ft.Text("Volunteer Analytics", size=18, weight=ft.FontWeight.BOLD, color="black"),
         bgcolor=WHITE,
@@ -143,7 +134,6 @@ def load_my_events(page: ft.Page):
         width=350  
     )
 
-    # Layout
     centered_layout = ft.Column([
         event_container,
         stats_button

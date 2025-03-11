@@ -6,7 +6,6 @@ import re
 from datetime import datetime
 from typing import Optional
 
-
 app = FastAPI()
 
 client = MongoClient("mongodb+srv://Tanoshi:nathaniel111@eventlink.1hfcs.mongodb.net/")
@@ -15,8 +14,17 @@ users_collection = db["users"]
 regions_collection = db["regions"]
 events_collection = db["events"]
 notifications_collection = db["notifications"]
+myevents_collection = db["myevents"]
 
 print(list(events_collection.find({})))
+
+@app.get("/get_user")
+def get_user(username: str = Query(...)):
+    """Fetch user data by username."""
+    user = users_collection.find_one({"username": username}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return user
 
 # Updated Luzon regions list
 Luzon_regions = [
@@ -83,7 +91,6 @@ def search_events(query: str = Query(...), region: str = None):
 @app.get("/search_events_by_category")
 def search_events_by_category(category: str):
     """Search events by category (using the 'type' field)"""
-    # Use a case-insensitive regex search for the category
     events = list(events_collection.find(
         {"type": {"$regex": f"^{category}$", "$options": "i"}},  # Case-insensitive exact match
         {"_id": 0}
@@ -92,6 +99,13 @@ def search_events_by_category(category: str):
         raise HTTPException(status_code=404, detail="No events found for this category.")
     return {"events": events}
 
+@app.get("/display_events")
+def display_events():
+    """Fetch all available events"""
+    events = list(events_collection.find({}, {"_id": 0}))
+    if not events:
+        raise HTTPException(status_code=404, detail="No events found.")
+    return {"events": events}
 
 class UserRegister(BaseModel):
     username: str
@@ -142,7 +156,6 @@ def register(user: UserRegister):
         "date_joined": datetime.now().strftime("%Y-%m-%d")
     })
     
-    # Insert a welcome notification for the newly registered user
     notifications_collection.insert_one({
         "username": user.username,
         "message": "Welcome to EventLink! Thank you for signing up.",
@@ -151,66 +164,60 @@ def register(user: UserRegister):
 
     return {"message": "Registration successful"}
 
-@app.get("/get_user")
-def get_user(username: str):
-    doc = users_collection.find_one({"username": username})
-    if not doc:
-        raise HTTPException(status_code=404, detail="User not found")
-    return {
-        "username": doc["username"],
-        "email": doc["email"],
-        "contact": doc["contact"],
-        "backup_email": doc.get("backup_email", "N/A"),
-        "backup_number": doc.get("backup_number", "N/A"),
-        "address": doc.get("address", "N/A"),
-        "gender": doc.get("gender", "N/A"),
-        "date_joined": doc.get("date_joined", "N/A")
-    }
-
-class UserUpdate(BaseModel):
-    email: Optional[EmailStr] = None
-    backup_email: Optional[str] = None
-    contact: Optional[str] = None
-    backup_number: Optional[str] = None
-    address: Optional[str] = None
-    gender: Optional[str] = None
-    status: Optional[str] = None  # <-- NEW FIELD
-
-@app.patch("/update_user")
-def update_user(username: str, updates: UserUpdate):
-    doc = users_collection.find_one({"username": username})
-    if not doc:
-        raise HTTPException(status_code=404, detail="User not found")
-    update_data = updates.dict(exclude_unset=True)
-    if not update_data:
-        raise HTTPException(status_code=400, detail="No update data provided")
-    result = users_collection.update_one({"username": username}, {"$set": update_data})
-    if result.modified_count == 1:
-        return {"message": "User updated successfully"}
-    else:
-        return {"message": "No changes made"}
-
 @app.get("/all_events")
 def get_all_events():
     """Fetch all events"""
     events = list(events_collection.find({}, {"_id": 0}))
-    print("Fetched Events:", events)  # Debugging line
     return {"events": events}
-
-@app.get("/events")
-def get_events():
-    return get_all_events()
 
 @app.get("/my_events")
 def get_my_events(username: str):
-    """Fetch events the user has joined (participated in)"""
+    """Fetch events the user has joined"""
     events = list(events_collection.find(
-        {"participants": username},  # <-- Assuming "participants" field exists
+        {"participants": username},  # Assuming "participants" field exists
         {"_id": 0}
     ))
     if not events:
         raise HTTPException(404, "No joined events found")
     return {"events": events}
+
+class JoinEventRequest(BaseModel):
+    event_id: str
+    title: str
+    date: str
+    time: str
+    username: str  # Username of the user joining
+
+@app.post("/join_event")
+def join_event(request: JoinEventRequest):
+    # If username is missing, user is not logged in.
+    if not request.username:
+        raise HTTPException(status_code=401, detail="Login required to join events.")
+
+    username = request.username
+
+    # Check if the user has already joined this event.
+    existing_entry = myevents_collection.find_one({"username": username, "event_id": request.event_id})
+    if existing_entry:
+        raise HTTPException(status_code=400, detail="You have already joined this event.")
+
+    # Insert the joined event into the myevents collection.
+    myevents_collection.insert_one({
+        "username": username,
+        "event_id": request.event_id,
+        "title": request.title,
+        "date": request.date,
+        "time": request.time
+    })
+
+    return {"message": "Successfully joined the event!"}
+
+@app.get("/joined_event")
+def joined_event(username: str, event_id: str):
+    """Return whether the user has joined a given event."""
+    entry = myevents_collection.find_one({"username": username, "event_id": event_id})
+    return {"joined": bool(entry)}
+
 
 @app.get("/notifications")
 def get_notifications(username: str):
@@ -231,10 +238,8 @@ def get_profile(username: str):
 @app.post("/logout")
 def logout(username: str):
     """Log out the user."""
-    # You can add logic to invalidate the user's session or token here
     return {"message": "Logout successful"}
 
-# Add endpoint to create notifications
 class Notification(BaseModel):
     username: str
     message: str
@@ -244,9 +249,6 @@ class Notification(BaseModel):
 def create_notification(notification: Notification):
     notifications_collection.insert_one(notification.dict())
     return {"message": "Notification created"}
-
-
-# ----------------------- New Event Endpoint -----------------------
 
 class Event(BaseModel):
     name: str

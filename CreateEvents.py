@@ -8,7 +8,8 @@ from flet import (
     ElevatedButton,
     Image,
     Dropdown,
-    border_radius
+    border_radius,
+    Alignment
 )
 import datetime
 import httpx
@@ -185,7 +186,8 @@ def main(page: ft.Page):
         bgcolor=SECONDARY_COLOR,
         padding=20,
         border_radius=border_radius.all(10),
-        alignment=ft.alignment.center
+        alignment=ft.alignment.center,
+        height=page.height * 0.9
     )
 
     left_image = Image(
@@ -206,22 +208,33 @@ def main(page: ft.Page):
         alignment=ft.MainAxisAlignment.CENTER
     )
 
-    # Use a Column layout to place the Back button at the top and the main content centered below
+    # Final Layout: Back button at the top, main content centered below
+       # We'll just center the row itself in the stack
+    main_content = main_row
+
+    # --- Final Layout with a Stack ---
+    # 1) Pin back_button in top-left
+    # 2) Center main_content in the remaining space
     final_layout = Column(
         controls=[
+            # Centered main content
             Container(
-                content=back_button,
-                alignment=ft.alignment.top_left,
-                padding=ft.padding.all(20)
+                
+
+                content = back_button,
+                alignment = ft.alignment.top_left,
+                padding=ft.padding.only(left=20, top=20), 
+                expand= False
             ),
+            # Top-left back button
             Container(
-                content=main_row,
-                expand=True,
-                alignment=ft.alignment.center
-            )
+                content=main_content,
+                alignment=ft.alignment.center,
+                expand=True
+
+            ),
         ],
-        expand=True,
-        horizontal_alignment=ft.CrossAxisAlignment.CENTER
+        expand=True
     )
 
     page.controls.clear()
@@ -230,3 +243,6 @@ def main(page: ft.Page):
 
 def load_create_event(page):
     main(page)
+
+if __name__ == "__main__":
+    ft.app(target=main)

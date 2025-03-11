@@ -4,6 +4,7 @@ import threading
 import time
 from search import load_search
 from header import load_header
+import join_event_form  # Import the join_event_form module
 
 def load_event_details(page: ft.Page, event: dict, search_context: dict):
     """
@@ -335,10 +336,21 @@ def load_event_details(page: ft.Page, event: dict, search_context: dict):
         alignment=ft.MainAxisAlignment.START
     )
 
+    def join_event(e):
+        """Load the join event form."""
+        join_event_form.load_join_event_form(
+            page,
+            title=event.get("name", "Unnamed Event"),
+            date=event.get("date", "N/A"),
+            time=event.get("time", "N/A"),
+            event_id=event.get("id", "N/A"),
+            back_callback=lambda: load_event_details(page, event, search_context)
+        )
+
     # Join Event button
     join_event_button = ft.ElevatedButton(
         text="Join Event",
-        on_click=lambda e: print("Join Event clicked"),  # Placeholder for join event logic
+        on_click=join_event,  # Call the join_event function
         bgcolor="#105743",
         color="white"
     )
