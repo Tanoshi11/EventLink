@@ -170,16 +170,12 @@ def load_search(page, query, search_type="global", location=None):
                 time_range = time_range[0]
 
             if " - " in time_range:
-                start_time_str, end_time_str = time_range.split(" - ", 1)
+                start_time_str, end_time_str = [s.strip() for s in time_range.split(" - ", 1)]
             else:
             
                 start_time_str = time_range
                 end_time_str = time_range
 
-            start_time_str = start_time_str.strip()
-            end_time_str   = end_time_str.strip()
-
-            
             start_dt_str = f"{event_date} {start_time_str}"
             end_dt_str   = f"{event_date} {end_time_str}"
 
@@ -187,6 +183,8 @@ def load_search(page, query, search_type="global", location=None):
             end_dt   = datetime.strptime(end_dt_str, "%Y-%m-%d %H:%M")
 
             now = datetime.now()
+
+
 
 
             #----------
@@ -225,6 +223,7 @@ def load_search(page, query, search_type="global", location=None):
 
                 #----------
 
+
                 time_value = ev["time"]
                 if " - " in time_value:
                     start_time = time_value.split(" - ",1)
@@ -237,7 +236,7 @@ def load_search(page, query, search_type="global", location=None):
                 #--------
 
 
-                event_status = get_event_status(ev.get("date", ""), start_time)
+                event_status = get_event_status(ev.get("date", ""), ev.get("time", ""))
                 status_color = {
                     "Upcoming": "#4CAF50",
                     "Ongoing": "#FFEB3B",

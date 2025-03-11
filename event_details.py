@@ -88,15 +88,27 @@ def load_event_details(page: ft.Page, event: dict, search_context: dict):
 
     def get_event_status(event_date, event_time):
         """Determine the status of the event based on the current date and time."""
-        event_datetime_str = f"{event_date} {event_time}"
-        event_datetime = datetime.strptime(event_datetime_str, "%Y-%m-%d %H:%M")
-        current_datetime = datetime.now()
-        if current_datetime > event_datetime:
-            return "Closed"
-        elif current_datetime.date() == event_datetime.date():
-            return "Ongoing"
-        else:
-            return "Upcoming"
+        try:
+        # --- CHANGED: Check if event_time contains a range separator (" - ") ---
+            if " - " in event_time:
+                # --- CHANGED: Extract only the start time and strip extra spaces ---
+                start_time = event_time.split(" - ")[0].strip()
+            else:
+                start_time = event_time.strip()
+            
+        # --- CHANGED: Use only the start time to build the datetime string ---
+            event_datetime_str = f"{event_date} {start_time}"
+            event_datetime = datetime.strptime(event_datetime_str, "%Y-%m-%d %H:%M")
+            current_datetime = datetime.now()
+            if current_datetime > event_datetime:
+                return "Closed"
+            elif current_datetime.date() == event_datetime.date():
+                return "Ongoing"
+            else:
+                return "Upcoming"
+        except Exception as ex:
+            print(f"Error in get_event_status: {ex}")
+            return "Unknown"
 
     event_status = get_event_status(event.get("date", ""), event.get("time", ""))
     status_color = {
