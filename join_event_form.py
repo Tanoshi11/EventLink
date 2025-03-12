@@ -2,7 +2,7 @@ import flet as ft
 import httpx
 from datetime import datetime
 
-def load_join_event_form(page, event_id, title, date, time, back_callback, join_callback):
+def load_join_event_form(page, event_id, title, date, time, available_slots,back_callback, join_callback):
     # Text fields with styling to match user_profile.py
     event_attend_name = ft.TextField(
         label="Name",
@@ -42,6 +42,12 @@ def load_join_event_form(page, event_id, title, date, time, back_callback, join_
         else:
             event_ticket_tobuy.error_text = None
 
+
+        #slots
+        if event_ticket_tobuy.value.isdigit() and int(event_ticket_tobuy.value)> available_slots:
+            event_ticket_tobuy.error_text = "Not enough slots available"
+            error_found = True
+
         page.update()
 
         if error_found:
@@ -78,6 +84,7 @@ def load_join_event_form(page, event_id, title, date, time, back_callback, join_
             ft.Text(f"Join Event: {title}", size=24, weight=ft.FontWeight.BOLD, color="#FDF7E3"),
             ft.Text(f"Date: {date}", color="#FDF7E3"),
             ft.Text(f"Time: {time}", color="#FDF7E3"),
+            ft.Text(f"Available slots: {available_slots}", color="#FDF7E3"),
             event_attend_name,
             event_ticket_tobuy,
             ft.Row(
