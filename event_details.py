@@ -116,9 +116,11 @@ def load_event_details(page: ft.Page, event: dict, search_context: dict):
         "Ongoing": "#FFEB3B",
         "Closed": "#FF5252"
     }.get(event_status, "white")
+
+    
     event_details = ft.Column(
         controls=[
-            ft.Text(f"Host: {event.get('username', 'Unknown')}", size=20, color="white"),
+            ft.Text(f'Host: {event.get("username", "Unknown")}', size=20, color="white"),
             ft.Text(f"Date: {event.get('date', 'N/A')}", size=20, color="white"),
             ft.Text(f"Time: {event.get('time', 'N/A')}", size=20, color="white"),
             ft.Text(f"Location: {event.get('location', 'N/A')}", size=20, color="white"),
@@ -182,6 +184,7 @@ def load_event_details(page: ft.Page, event: dict, search_context: dict):
             title=event.get("name", "Unnamed Event"),
             date=event.get("date", "N/A"),
             time=event.get("time", "N/A"),
+            available_slots=event.get("guest_limit", "N/A"),
             event_id=event.get("id", "N/A"),
             back_callback=close_popup,  # Close the popup without refreshing the page
             join_callback=update_join_button
