@@ -1,16 +1,15 @@
 import flet as ft
+from header import load_header  # Import the header function
+from datetime import datetime
 import pymongo
-from datetime import datetime, timedelta
 
-# Define theme colors
-PRIMARY_COLOR = "#6d9773"
-SECONDARY_COLOR = "#0c3b2e"
-ACCENT_COLOR = "#b46617"
-HIGHLIGHT_COLOR = "#ffba00"
+# Define Colors
+BACKGROUND_COLOR = "#c69c5d"
+DARK_RED = "#d9534f"
+GREEN = "#5cb85c"
+MUSTARD_YELLOW = "#f0ad4e"
 WHITE = "#ffffff"
-DARK_RED = "#8B0000"
-MUSTARD_YELLOW = "#B8860B"
-GREEN = "#008000"
+DARK_TEXT = "#333333"
 
 # MongoDB Connection
 MONGO_URI = "mongodb+srv://samanthaangelacrn:eventlink@eventlink.1hfcs.mongodb.net/?retryWrites=true&w=majority&appName=EventLink"
@@ -19,7 +18,7 @@ db = client["EventLink"]
 collection = db["events"]
 
 def fetch_events():
-    """Fetch events from MongoDB and return them as a list of dictionaries."""
+    """Fetch events from MongoDB."""
     try:
         events = list(collection.find({}, {"_id": 0, "name": 1, "date": 1}))
         return events
@@ -28,126 +27,119 @@ def fetch_events():
         return []
 
 def load_my_events(page: ft.Page):
-    """Load the My Events page with categorized event listings."""
+    """Load the My Events page."""
     page.title = "My Events"
-    page.bgcolor = SECONDARY_COLOR
-    page.padding = 20
+    page.bgcolor = BACKGROUND_COLOR
+    page.padding = 0  
 
     events = fetch_events()
     current_date = datetime.now().date()
 
-    three_months_ago = current_date - timedelta(days=90)
-    three_months_later = current_date + timedelta(days=90)
-
     past_events, current_events, upcoming_events = [], [], []
-
     for event in events:
         try:
             event_date = datetime.strptime(event["date"], "%Y-%m-%d").date()
             event_text = ft.Text(event['name'], size=16, color=WHITE, weight=ft.FontWeight.BOLD)
 
-            if event_date < three_months_ago:
+            if event_date < current_date:
                 past_events.append(event_text)
-            elif three_months_ago <= event_date <= three_months_later:
+            elif event_date == current_date:
                 current_events.append(event_text)
             else:
                 upcoming_events.append(event_text)
         except Exception as e:
             print(f"Error parsing event date: {e}")
 
-    header = ft.Container(
+    taskbar = load_header(page)  # Load the header
+
+    my_events_header = ft.Container(
         content=ft.Row([
-            ft.Text("My Events", size=30, weight=ft.FontWeight.BOLD, color=SECONDARY_COLOR, expand=True),
-            ft.IconButton(icon=ft.icons.HOME, icon_color=SECONDARY_COLOR, icon_size=30, 
-                          on_click=lambda e: go_back(e, page)),
-        ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
-        bgcolor=WHITE,
-        padding=20,
-        border_radius=30,
+            ft.Icon(ft.icons.EVENT, color=WHITE, size=30),
+            ft.Text("My Events", size=28, weight=ft.FontWeight.BOLD, color=WHITE)
+        ], spacing=15, alignment=ft.MainAxisAlignment.START),
+        margin=ft.margin.only(left=30, top=20)
     )
 
-    def go_back(e, page):
-        import homepg
-        page.controls.clear()
-        homepg.main(page)
-        page.update()
-    
+    divider_line = ft.Divider(color=WHITE, thickness=2)
+
     def event_section(title, events, bg_color):
         return ft.Container(
             content=ft.Column([
-                ft.Text(title, size=18, weight=ft.FontWeight.BOLD, color=WHITE),
-                ft.Column(events if events else [ft.Text("No events", color=WHITE)]),
-            ], spacing=10),
+                ft.Text(title, size=22, weight=ft.FontWeight.BOLD, color=WHITE, text_align=ft.TextAlign.CENTER),
+                ft.Column(events if events else [ft.Text("No events", color=WHITE, text_align=ft.TextAlign.CENTER)],
+                          alignment=ft.MainAxisAlignment.CENTER, expand=True),
+            ], spacing=10, alignment=ft.MainAxisAlignment.CENTER, expand=True),
             bgcolor=bg_color,
             border_radius=15,
-            padding=15,
-            expand=True,
+            padding=20,
+            expand=True
         )
 
-    event_container = ft.Container(
-        content=ft.Column([
-            ft.Row([
-                event_section("Current Events", current_events, GREEN),
-            ], spacing=10, expand=True),
-            ft.Row([
-                event_section("Upcoming Events", upcoming_events, MUSTARD_YELLOW),
-                event_section("Past Events", past_events, DARK_RED),
-            ], spacing=10, expand=True)
-        ], spacing=10, alignment=ft.MainAxisAlignment.CENTER),
+    events_container = ft.Row([
+        event_section("Past Events", past_events, DARK_RED),
+        event_section("Current Events", current_events, GREEN),
+        event_section("Upcoming Events", upcoming_events, MUSTARD_YELLOW),
+    ], spacing=20, alignment=ft.MainAxisAlignment.CENTER, expand=True)
+
+    content_container = ft.Container(
+        content=events_container,
         bgcolor=WHITE,
         border_radius=15,
-        padding=15,
-        width=600,
-        height=400,
-    )
-
-    def go_stats(e, page):
-        import analytics
-        page.controls.clear()
-        analytics.main(page)
-        page.update()
-
-    stats_button = ft.Container(
-        content=ft.Text("Event Stats", size=18, weight=ft.FontWeight.BOLD, color=SECONDARY_COLOR),
-        bgcolor=WHITE,
-        padding=15,
-        border_radius=30,
+        padding=30,
+        width=950,
+        height=500,
         alignment=ft.alignment.center,
-        width=200,
-        on_click=lambda e: go_stats(e, page),
+        margin=ft.margin.only(left=30, top=20)
     )
 
-    calendar = ft.Container(
-        content=ft.Text("📅 Calendar (Placeholder)", size=18, weight=ft.FontWeight.BOLD, color="black"),
-        bgcolor=WHITE,
-        padding=15,
-        border_radius=15,
-        width=350  
-    )
-
-    volunteer_button = ft.Container(
-        content=ft.Text("Volunteer Analytics", size=18, weight=ft.FontWeight.BOLD, color="black"),
-        bgcolor=WHITE,
-        padding=15,
-        border_radius=30,
-        alignment=ft.alignment.center,
-        width=350  
-    )
-
-    centered_layout = ft.Column([
-        event_container,
-        stats_button
-    ], alignment=ft.MainAxisAlignment.CENTER, horizontal_alignment=ft.CrossAxisAlignment.CENTER)
+    stats_buttons = ft.Column([
+        ft.ElevatedButton(
+            "Event Stats", 
+            on_click=lambda e: go_event_stats(page), 
+            bgcolor=WHITE, 
+            color=DARK_TEXT,
+            width=220,
+            height=60,
+            style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=10))
+        ),
+        ft.ElevatedButton(
+            "Volunteer Stats", 
+            on_click=lambda e: go_volunteer_stats(page), 
+            bgcolor=WHITE, 
+            color=DARK_TEXT,
+            width=220,
+            height=60,
+            style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=10))
+        )
+    ], spacing=10, alignment=ft.MainAxisAlignment.START)
 
     page.add(
-        header,
-        ft.Container(
-            content=ft.Row([centered_layout, ft.Column([calendar, volunteer_button], spacing=15, expand=True)], spacing=15, expand=True),
-            alignment=ft.alignment.center,
-            expand=True,
-        )
+        taskbar,
+        my_events_header,
+        divider_line,
+        ft.Row([
+            content_container,
+            stats_buttons
+        ], alignment=ft.MainAxisAlignment.START, spacing=10)
     )
+    page.update()
 
+def go_home(page):
+    import homepg
+    page.controls.clear()
+    homepg.main(page)
+    page.update()
+
+def go_event_stats(page):
+    import event_stats
+    page.controls.clear()
+    event_stats.main(page)
+    page.update()
+
+def go_volunteer_stats(page):
+    import volunteer_stats
+    page.controls.clear()
+    volunteer_stats.main(page)
     page.update()
 
 if __name__ == "__main__":

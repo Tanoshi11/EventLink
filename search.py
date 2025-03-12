@@ -2,7 +2,15 @@ import flet as ft
 import httpx
 import threading
 import time
+from datetime import datetime
 from header import load_header  # Import the header
+
+def clear_overlay(page: ft.Page):
+    """Clear the overlay (e.g., join event form) from the page."""
+    if page.overlay:
+        page.overlay.clear()
+        page.update()
+
 
 def load_event_details(page, event):
     """Load event details when an event container is clicked."""
@@ -16,6 +24,7 @@ def load_event_details(page, event):
     event_details.load_event_details(page, event, search_context)
 
 def load_search(page, query, search_type="global", location=None):
+    clear_overlay(page)  # Clear the overlay before loading the search page
     # Initialize page.data as a dictionary
     if page.data is None:
         page.data = {}
@@ -29,7 +38,7 @@ def load_search(page, query, search_type="global", location=None):
     if search_type == "category":
         heading_text = f"Category: {query}"
     elif location:
-        heading_text = f"Search Results: {query} ; Location: {location}"
+        heading_text = f"Search Results: {query} ; Region: {location}"
     else:
         heading_text = f"Search Results: {query}"
 
@@ -85,22 +94,23 @@ def load_search(page, query, search_type="global", location=None):
         controls=[
             ft.Text("Filters", color="white", size=20, weight=ft.FontWeight.BOLD),
             ft.Text("Category", color="white", size=16, weight=ft.FontWeight.W_600),
+            category_row(ft.Icons.BRUSH, "Arts"),
             category_row(ft.Icons.BUSINESS_CENTER, "Business"),
-            category_row(ft.Icons.RESTAURANT, "Food & Drink"),
-            category_row(ft.Icons.CHILD_CARE, "Family & Education"),
+            category_row(ft.Icons.FAVORITE, "Charity"),
+            category_row(ft.Icons.LOCAL_LIBRARY, "Community"),
+            category_row(ft.Icons.SCHOOL, "Education"),
+            category_row(ft.Icons.THEATER_COMEDY, "Entertainment"),
+            category_row(ft.Icons.ECO, "Environment"),
+            category_row(ft.Icons.RESTAURANT, "Food"),
+            category_row(ft.Icons.GAMES, "Gaming"),
             category_row(ft.Icons.HEALTH_AND_SAFETY, "Health"),
-            category_row(ft.Icons.DIRECTIONS_BOAT, "Travel"),
             category_row(ft.Icons.MUSIC_NOTE, "Music"),
-            category_row(ft.Icons.THEATER_COMEDY, "Performing Arts"),
-            category_row(ft.Icons.STYLE, "Fashion"),
-            category_row(ft.Icons.MOVIE, "Film & Media"),
-            category_row(ft.Icons.COLOR_LENS, "Hobbies"),
-            category_row(ft.Icons.HOME, "Home & Lifestyle"),
-            category_row(ft.Icons.GROUP, "Community"),
-            category_row(ft.Icons.VOLUNTEER_ACTIVISM, "Charity & Causes"),
-            category_row(ft.Icons.ACCOUNT_BALANCE, "Government"),
+            category_row(ft.Icons.GAVEL, "Politics"),
+            category_row(ft.Icons.SPORTS_SOCCER, "Sports"),
+            category_row(ft.Icons.DEVICES, "Technology"),
+            category_row(ft.Icons.FLIGHT, "Travel"),
         ],
-        spacing=15,
+        spacing=12,
         alignment=ft.MainAxisAlignment.START
     )
 
@@ -124,7 +134,7 @@ def load_search(page, query, search_type="global", location=None):
             location = page.data.get("location")
 
             # Debugging: Print the current search context
-            print(f"Fetching events - Query: '{query}', Type: '{search_type}', Location: '{location}'")
+            print(f"Fetching events - Query: '{query}', Type: '{search_type}', Region: '{location}'")
 
             # Build the URL
             if search_type == "category":
@@ -150,9 +160,54 @@ def load_search(page, query, search_type="global", location=None):
         except Exception as ex:
             print(f"Error in fetch_events: {ex}")
             return []
+
+    def get_event_status(event_date, time_range):
+        """Determine the status of the event based on the current date and time."""
+        try:
+            #--------2
+
+            if isinstance(time_range, list):
+                time_range = time_range[0]
+
+            if " - " in time_range:
+                start_time_str, end_time_str = [s.strip() for s in time_range.split(" - ", 1)]
+            else:
+            
+                start_time_str = time_range
+                end_time_str = time_range
+
+            start_dt_str = f"{event_date} {start_time_str}"
+            end_dt_str   = f"{event_date} {end_time_str}"
+
+            start_dt = datetime.strptime(start_dt_str, "%Y-%m-%d %H:%M")
+            end_dt   = datetime.strptime(end_dt_str, "%Y-%m-%d %H:%M")
+
+            now = datetime.now()
+
+
+
+
+            #----------
+            if now < start_dt:
+                return "Upcoming"
+            elif start_dt <= now <= end_dt:
+                return "Ongoing"
+            else:
+                return "Closed"
         
+        except Exception as ex:
+            print(f"Error in get_event_status: {ex}")
+            return "Unknown"
+
+            #start_time = event_time.split(" - ")[0] if " - " in event_time else event_time
+            #event_datetime_str = f"{event_date} {start_time}"
+            #event_datetime = datetime.strptime(event_datetime_str, "%Y-%m-%d %H:%M")
+           # current_datetime = datetime.now()
+            
+    
+
     def load_events():
-        time.sleep(0.5)  # Optional delay
+        time.sleep(0.2)  # Optional delay
         events = fetch_events()
 
         # Debugging: Print the number of events fetched
@@ -166,13 +221,39 @@ def load_search(page, query, search_type="global", location=None):
                 # Debugging: Print each event's data
                 print("Event data:", ev)
 
+                #----------
+
+
+                time_value = ev["time"]
+                if " - " in time_value:
+                    start_time = time_value.split(" - ",1)
+                else:
+                    start_time = time_value
+                    
+
+                #time_range = (f"{start_time} - {end_time}") if start_time and end_time else (start_time or end_time)
+
+                #--------
+
+
+                event_status = get_event_status(ev.get("date", ""), ev.get("time", ""))
+                status_color = {
+                    "Upcoming": "#4CAF50",
+                    "Ongoing": "#FFEB3B",
+                    "Closed": "#FF5252"
+                }.get(event_status, "white")
+
                 event_container = ft.Container(
                     content=ft.Column(
                         controls=[
                             ft.Text(ev.get("name", "Unnamed Event"), size=22, color="white", weight=ft.FontWeight.BOLD),
+                            ft.Text(f"Status: {event_status}", color=status_color, weight=ft.FontWeight.BOLD),
                             ft.Text(f"Date: {ev.get('date', '')}", color="white"),
-                            ft.Text(f"Location: {ev.get('location', '')}", color="white"),
-                            ft.Text(ev.get("description", ""), color="white"),
+                            ft.Text(f"Time: {ev.get('time', '')}", color="white"),
+                            #------
+                            ft.Text(f"Region: {ev.get('location', '')}", color="white"),
+                            #-------
+                            ft.Text(f"Category: {ev.get('type', 'Unknown')}", color="white"),  # Use 'type' instead of 'category'
                         ],
                         spacing=5
                     ),
