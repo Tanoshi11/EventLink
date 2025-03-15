@@ -1,12 +1,9 @@
 import flet as ft
-from controller.login_controller import LoginController
+from controller.login_controller import main as login_main
 
 def main(page: ft.Page):
-    page.title = "EventLink - Login"
-    page.bgcolor = "#0C3B2E"
-
-    controller = LoginController(page)
-    controller.load_login_view()
+    """Initialize the application with the login page."""
+    login_main(page)
 
 if __name__ == "__main__":
     ft.app(target=main)

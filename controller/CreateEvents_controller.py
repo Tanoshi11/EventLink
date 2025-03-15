@@ -74,9 +74,10 @@ class CreateEventsController:
         sidebar_view = sidebar_controller.build()
         sidebar_container = Container(
             content=sidebar_view,
-            width=250,         
+            width=250,
+            height=1300,         
             expand=False,      
-            bgcolor=PAGE_BG_COLOR
+            bgcolor=PAGE_BG_COLOR,
         )
 
       
