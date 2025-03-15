@@ -1,41 +1,18 @@
 import httpx
 from datetime import datetime
-
-
 class VolunteerModel:
-    @staticmethod
-    def fetch_joined_events(username: str) -> list:
-        """
-        Fetch events joined by the user from the backend API.
-
-        Args:
-            username (str): The username of the logged-in user.
-
-        Returns:
-            list: A list of events joined by the user.
-        """
-        url = f"http://localhost:8000/my_events?username={username}"
+    def fetch_joined_events(self, username, category=None):
+        """Fetch events based on the selected category."""
         try:
-            response = httpx.get(url, timeout=10)  # Add timeout for better reliability
-
-            # Debugging output
-            print("Response status:", response.status_code)
-            print("Response content:", response.text)  # Print raw response for debugging
-
-            # Check if response is valid JSON
-            if response.status_code == 200 and response.text.strip():
-                try:
-                    data = response.json()
-                    return data.get("events", [])  # Ensure key exists
-                except Exception as e:
-                    print(f"⚠️ JSON Parsing Error: {e}")
-                    return []  # Return empty list in case of error
-            else:
-                print(f"⚠️ Request failed with status {response.status_code}: {response.text}")
-                return []
-        except httpx.RequestError as ex:
-            print(f"⚠️ Network Error: {ex}")
-            return []  # Return empty list in case of network issues
+            url = f"http://localhost:8000/my_events?username={username}"
+            if category:
+                url += f"&category={category}"
+            response = httpx.get(url)
+            if response.status_code == 200:
+                return response.json().get("events", [])
+        except Exception as ex:
+            print("Error fetching events:", ex)
+        return []
 
     @staticmethod
     def update_volunteer_status(username: str, event_id: str) -> bool:

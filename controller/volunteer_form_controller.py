@@ -1,5 +1,4 @@
 import flet as ft
-
 from model.volunteer_form_model import VolunteerFormModel
 from view.volunteer_form_view import VolunteerFormView
 

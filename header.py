@@ -9,14 +9,6 @@ def clear_overlay(page: ft.Page):
     if page.overlay:
         page.overlay.clear()
         page.update()
-        
-
-def show_profile_page(e):
-    page = e.control.page
-    from controller.user_profile_controller import UserProfileController  
-    profile_controller = UserProfileController(page, page.data.get("username"))
-    profile_controller.show_profile()
-
 
 def get_regions():
     """Fetch regions from the server."""
@@ -34,7 +26,6 @@ def load_header(page: ft.Page):
     global notif_popup
 
     # ----------------- Header Functions -----------------
-
 
     def search_events(e):
         """Trigger search when the user selects a region or presses Enter."""

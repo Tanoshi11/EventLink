@@ -3,7 +3,7 @@ import time
 import flet as ft
 from model.search_model import fetch_events, get_event_status
 from view.search_view import create_results_view, create_main_stack, clear_overlay, load_event_details
-from controller.category_list_controller import CategoryListController
+# from controller.category_list_controller import CategoryListController
 from controller.sidebar_controller import SidebarController
 
 def get_header_controller():
@@ -36,8 +36,8 @@ def load_search(page, query, search_type="global", location=None):
     sidebar_controller = SidebarController(page)
     sidebar = sidebar_controller.build()
 
-    category_list_controller = CategoryListController(page)
-    categories = category_list_controller.build()
+    # category_list_controller = CategoryListController(page)
+    # categories = category_list_controller.build()
 
     def load_events():
         time.sleep(0.2)
@@ -78,7 +78,7 @@ def load_search(page, query, search_type="global", location=None):
 
         page.update()
 
-    main_stack = create_main_stack(header, categories, sidebar, results_title, heading_divider, results_list)
+    main_stack = create_main_stack(header, sidebar, results_title, heading_divider, results_list) # no categories
     page.controls.clear()
     page.add(main_stack)
     page.update()

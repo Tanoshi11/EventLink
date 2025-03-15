@@ -1,29 +1,21 @@
 import flet as ft
 import threading
+import httpx
 from model.volunteer_model import VolunteerModel
 from view.volunteer_view import VolunteerView
-from controller.volunteer_form_controller import VolunteerFormController
-from controller.sidebar_controller import SidebarController  # ✅ Import SidebarController
+from controller.sidebar_controller import SidebarController
 
 class VolunteerController:
     def __init__(self, page: ft.Page):
-        if page is None:
-            raise ValueError("Page cannot be None in VolunteerController")
         self.page = page
         self.model = VolunteerModel()
         self.view = VolunteerView(self)
 
-    def get_event_status(self, event_date: str, event_time: str) -> str:
-        return self.model.get_event_status(event_date, event_time)
+        self.page.snack_bar = ft.SnackBar(content=ft.Text(""), bgcolor="#4CAF50")
 
-    def load_header(self, page):
-        from header import load_header  # ✅ Lazy import to prevent circular import issues
-        return load_header(page)
-
-    def show_volunteer_popup(self, page, event):
-        """Displays the volunteer form popup for the given event."""
-        volunteer_form_controller = VolunteerFormController(page)
-        volunteer_form_controller.show_volunteer_popup(page, event)
+        # Store references to components for proper removal
+        self.volunteer_content = None
+        self.sidebar = None
 
     def load_volunteer(self):
         """Loads the volunteer page and ensures sidebar is displayed first."""
@@ -34,15 +26,15 @@ class VolunteerController:
 
         self.page.data["volunteer_form_active"] = True
 
-        # ✅ Load sidebar first
+        # Load sidebar first
         sidebar_controller = SidebarController(self.page)
         sidebar = sidebar_controller.build()
 
-        # ✅ Clear only volunteer-related content, not the sidebar
+        # Clear only volunteer-related content, not the sidebar
         self.page.controls.clear()
         self.page.add(sidebar)  # Sidebar remains
 
-        # ✅ Build volunteer content correctly
+        # Build volunteer content correctly
         volunteer_content = self.view.build(self.page)  
         if volunteer_content is None:
             print("⚠️ Error: Volunteer view returned None!")
@@ -51,35 +43,91 @@ class VolunteerController:
         self.page.add(volunteer_content)  # Add volunteer content after sidebar
         self.page.update()  # Force UI refresh
 
-        # ✅ Load events in the background
-        threading.Thread(target=self.load_events, daemon=True).start()
+        # Listen to route changes
+        self.page.on_route_change = self.handle_route_change
+
+    def handle_route_change(self, e):
+        """Handles route changes and reloads the page."""
+        print(f"Route changed to: {self.page.route}")
+        # Rebuild the page based on the new route
+        self.load_volunteer()
+
+
+    def remove_volunteer_view(self):
+        """Properly remove the volunteer UI if it exists."""
+        volunteer_content = self.page.data.get("volunteer_content")
+        if not volunteer_content:
+            print("⚠️ No volunteer content to remove. Skipping.")
+            return
+
+        print("✅ Attempting to remove Volunteer Page...")
+
+        if volunteer_content in self.page.controls:
+            self.page.controls.remove(volunteer_content)
+            self.page.update()
+            print("✅ Volunteer Page Removed!")
+        else:
+            print("⚠️ Volunteer content exists but was not found in controls!")
+
+        # Remove the stored reference
+        self.page.data["volunteer_content"] = None
+
+
+
+
+
+
 
     def load_events(self):
-        """Loads events the user has joined and updates the event list."""
+        """Fetches joined events and updates the UI properly."""
         try:
-            self.view.results_list.controls.clear()
-            self.view.results_list.controls.append(ft.Text("Loading Results...", size=20, color="white"))
+            self.view.scrollable_results.controls.clear()
+            self.view.scrollable_results.controls.append(ft.Text("Loading Events...", size=20, color="white"))
             self.page.update()
 
             username = self.page.data.get("username")
             if not username:
-                print("⚠️ No username found, cannot fetch events.")
-                self.view.results_list.controls.append(ft.Text("Error: No user logged in.", size=20, color="red"))
+                self.view.scrollable_results.controls.append(ft.Text("Error: No user logged in.", size=20, color="red"))
                 self.page.update()
                 return
 
-            events = self.model.fetch_joined_events(username)
-            print("Fetched events:", events)  # Debugging output
-
+            events = self.model.fetch_joined_events(username, self.page.data.get("category"))
             self.view.update_event_list(self.page, events)
+
         except Exception as e:
             print(f"Error loading events: {e}")
-            self.view.results_list.controls.clear()
-            self.view.results_list.controls.append(ft.Text("Failed to load events.", size=20, color="red"))
+            self.view.scrollable_results.controls.clear()
+            self.view.scrollable_results.controls.append(ft.Text("Failed to load events.", size=20, color="red"))
+            self.page.update()
+
+    def update_volunteer_status(self, e, event_id: str):
+        """Updates the user status to 'Volunteer' for an event."""
+        try:
+            username = self.page.data.get("username")
+            if not username:
+                return
+            response = httpx.patch(
+                f"http://localhost:8000/update_user?username={username}",
+                json={"status": "Volunteer"}
+            )
+            if response.status_code == 200:
+                self.page.snack_bar.content = ft.Text("You are now a volunteer!")
+                self.page.snack_bar.bgcolor = "#4CAF50"
+                e.control.text = "Volunteering!"
+                e.control.bgcolor = "#4CAF50"
+                e.control.disabled = True
+                e.control.update()
+            else:
+                self.page.snack_bar.content = ft.Text("Failed to update status!")
+                self.page.snack_bar.bgcolor = "red"
+        except Exception as ex:
+            self.page.snack_bar.content = ft.Text(f"Error updating status: {ex}")
+            self.page.snack_bar.bgcolor = "red"
+        finally:
+            self.page.snack_bar.open = True
             self.page.update()
 
 def main(page: ft.Page):
-    """Main entry point for the Flet app."""
     controller = VolunteerController(page)
     controller.load_volunteer()
 

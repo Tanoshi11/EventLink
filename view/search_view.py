@@ -46,7 +46,7 @@ def create_results_view(heading_text):
 
     return results_title, heading_divider, results_list
 
-def create_main_stack(taskbar, side_taskbar, sidebar, results_title, heading_divider, results_list):
+def create_main_stack(taskbar, sidebar, results_title, heading_divider, results_list):
     return ft.Stack(
         controls=[
             ft.Container(

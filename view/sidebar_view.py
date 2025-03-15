@@ -51,9 +51,9 @@ class SidebarView:
 
     def load_homepage(self, e):
         """Loads the homepage."""
-        from controller.homepg_controller import load_home
+        from controller.homepg_controller import load_homepage
         clear_overlay(self.page)
-        load_home(self.page)
+        load_homepage(self.page)
 
     def load_my_events(self, e):
         """Loads the user's events page."""
@@ -68,10 +68,13 @@ class SidebarView:
         load_create_event(self.page)
 
     def open_volunteer_page(self, e):
-        """Opens the volunteer page."""
-        from controller.volunteer_controller import load_volunteer
-        clear_overlay(self.page)
-        load_volunteer(self.page)
+        """Opens the volunteer page from the sidebar."""
+        from controller.volunteer_controller import VolunteerController
+        clear_overlay(self.page)  # Remove overlays before navigation
+
+        volunteer_controller = VolunteerController(self.page)  # ✅ Initialize controller
+        volunteer_controller.load_volunteer()  # ✅ Correctly call load_volunteer()
+
 
     def logout(self, e):
         """Logs out the user and redirects to the login screen."""
