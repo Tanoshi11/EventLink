@@ -50,7 +50,7 @@ def load_header(page: ft.Page):
         hint_style=ft.TextStyle(size=17, color="white"),
         expand=True,
         border_color="white",
-        bgcolor="#a8730a", 
+        bgcolor="#825907", 
         color="white",  # White text
         #menu_height=320,
     )

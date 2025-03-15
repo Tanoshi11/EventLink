@@ -329,6 +329,7 @@ class UserProfileView:
             bgcolor="rgba(0,0,0,0.5)",  # Semi-transparent overlay
             content=ft.Container(
                 width=450,
+                height= 800,
                 padding=20,
                 border_radius=10,
                 bgcolor="#406157",

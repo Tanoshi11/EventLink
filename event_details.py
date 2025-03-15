@@ -6,7 +6,7 @@ from header import load_header
 from view.sidebar_view import SidebarView  # Import SidebarView
 from controller.sidebar_controller import SidebarController  # Import SidebarController
 from utils import clear_overlay
-from controller.join_event_form_controller import JoinEventController as join_event_form
+from controller.join_event_form_controller import JoinEventController
 
 def load_event_details(page: ft.Page, event: dict, search_context: dict):
     if page.data is None:
@@ -69,7 +69,7 @@ def load_event_details(page: ft.Page, event: dict, search_context: dict):
 
     event_details = ft.Column(
         controls=[
-            ft.Text(f'Host: {event.get("username", "Unknown")}', size=20, color="white"),
+            ft.Text(f'Host: {event.get("host", "Unknown")}', size=20, color="white"),
             ft.Text(f"Date: {event.get('date', 'N/A')}", size=20, color="white"),
             ft.Text(f"Time: {event.get('time', 'N/A')}", size=20, color="white"),
             ft.Text(f"Location: {event.get('location', 'N/A')}", size=20, color="white"),
@@ -123,7 +123,7 @@ def load_event_details(page: ft.Page, event: dict, search_context: dict):
         page.overlay.append(blur_overlay)
         page.update()
 
-        join_event_form.load_join_event_form(
+        JoinEventController.load_join_event_form(
             page,
             title=event.get("name", "Unnamed Event"),
             date=event.get("date", "N/A"),
@@ -142,7 +142,7 @@ def load_event_details(page: ft.Page, event: dict, search_context: dict):
                 ):
                     page.overlay.remove(control)
                     break
-        join_event_form.close_join_popup(page)
+        JoinEventController.close_join_popup(page)
         page.update()
 
     def update_join_button():
