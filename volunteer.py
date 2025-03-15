@@ -1,201 +1,154 @@
 import flet as ft
-import httpx
 import threading
 import time
+from datetime import datetime
 from header import load_header
+from volunteer_form import fetch_joined_events, show_volunteer_popup
+import httpx
+
+def clear_overlay(page: ft.Page):
+    """Clear the overlay (e.g., volunteer popup) from the page."""
+    if page.overlay:
+        page.overlay.clear()
+        page.update()
 
 def load_volunteer(page: ft.Page):
-    # Initialize page.data if needed
     if page.data is None:
         page.data = {}
 
-    # Clear previous UI
+    # Set flag to track volunteer form activity
+    page.data["volunteer_form_active"] = True
+
+
     page.controls.clear()
-    
-    # Set page background color
     page.bgcolor = "#d6aa54"
-    
-    # Load header
+
+    # Load header (DO NOT REMOVE)
     taskbar = load_header(page)
 
-    # ----------------- Helper Functions -----------------
-    def fetch_joined_events():
-        """Fetch events based on the selected category."""
-        try:
-            username = page.data.get("username", "default_user")
-            category = page.data.get("category", None)
-            url = f"http://localhost:8000/my_events?username={username}"
-            if category:
-                url += f"&category={category}"
-            response = httpx.get(url)
-            if response.status_code == 200:
-                return response.json().get("events", [])
-        except Exception as ex:
-            print("Error fetching events:", ex)
-        return []
+    def get_event_status(event_date, event_time):
+        """Determine the status of the event based on the current date and time."""
+        event_datetime_str = f"{event_date} {event_time}"
+        event_datetime = datetime.strptime(event_datetime_str, "%Y-%m-%d %H:%M")
+        current_datetime = datetime.now()
 
-    def update_volunteer_status(e, event_id: str):
-        """Update user to 'Volunteer' for an event."""
-        try:
-            username = page.data.get("username")
-            if not username:
-                return
-            response = httpx.patch(
-                f"http://localhost:8000/update_user?username={username}",
-                json={"status": "Volunteer"}
-            )
-            if response.status_code == 200:
-                page.snack_bar = ft.SnackBar(
-                    ft.Text("You are now a volunteer!"),
-                    bgcolor="#4CAF50"
-                )
-                e.control.text = "Volunteering!"
-                e.control.bgcolor = "#4CAF50"
-                e.control.disabled = True
-                e.control.update()
-        except Exception as ex:
-            page.snack_bar = ft.SnackBar(
-                ft.Text(f"Error updating status: {ex}"),
-                bgcolor="red"
-            )
-        finally:
-            page.snack_bar.open = True
-            page.update()
+        if current_datetime > event_datetime:
+            return "Closed"
+        else:
+            return "Available"
 
     def load_events():
-        """Fetch events and update the UI quickly."""
-        # Display a loading message while waiting for results
+        """Fetch events and update the UI."""
         results_list.controls.clear()
         results_list.controls.append(ft.Text("Loading Results...", size=20, color="white"))
         page.update()
 
-        time.sleep(0.5)  # Optional delay
-        events = fetch_joined_events()
+        time.sleep(0.5)
+        events = fetch_joined_events(page)
 
         results_list.controls.clear()
         if not events:
             results_list.controls.append(
-                ft.Text("No volunteer events found.", size=20, color="white")
+                ft.Text("You haven't joined any events.", size=20, color="white")
             )
         else:
             for event in events:
-                # Placeholder: Check if the user has joined the event.
-                # For now, we'll assume they have joined (set joined=True).
-                # Later, you can replace this with a real check from your endpoint.
-                joined = event.get("joined", True)
-                volunteer_button = ft.ElevatedButton(
-                    "Volunteer" if joined else "Join Event First",
-                    icon=ft.icons.VOLUNTEER_ACTIVISM,
-                    on_click=lambda e, ev=event: update_volunteer_status(e, ev.get("id")) if joined else None,
+                event_status = get_event_status(event.get("date", ""), event.get("time", ""))
+                status_color = {
+                    "Available": "#4CAF50",
+                    "Closed": "#FF5252"
+                }.get(event_status, "white")
+                
+                text_color = "white" if event_status == "Available" else "#B0B0B0"  # Gray color for closed events
+
+                event_container = ft.Container(
+                    content=ft.Row(
+                        controls=[
+                            ft.Column(
+                                controls=[
+                                    ft.Text(event.get("name", "Unnamed Event"), size=22, color=text_color, weight=ft.FontWeight.BOLD),
+                                    ft.Text(f"Date: {event.get('date', 'N/A')}", color=text_color),
+                                    ft.Text(f"Time: {event.get('time', 'N/A')}", color=text_color),
+                                    ft.Text(f"Region: {event.get('location', 'N/A')}", color=text_color),
+                                    ft.Text(f"Category: {event.get('type', 'Unknown')}", color=text_color),
+                                    ft.Text(""),
+                                    ft.Text(f"Date Joined: {event.get('joined', 'N/A').split(' ')[0]}", color=text_color)  # Removed alignment arg
+                                ], 
+                                spacing=5
+                            ),
+                            ft.Container(
+                                content=ft.Text(event_status, color="white", weight=ft.FontWeight.BOLD, size=18),
+                                padding=ft.padding.symmetric(horizontal=10, vertical=5),
+                                border_radius=5,
+                                bgcolor=status_color
+                            )
+                        ],
+                        alignment=ft.MainAxisAlignment.SPACE_BETWEEN
+                    ),
+                    padding=10,
+                    border_radius=10,
                     bgcolor="#105743",
-                    color="white",
-                    disabled=not joined
+                    ink=True,
+                    on_click=lambda e, ev=event: show_volunteer_popup(page, ev) if get_event_status(ev.get("date", ""), ev.get("time", "")) == "Available" else None  # Only Available if status is "Available"
                 )
-                results_list.controls.append(
-                    ft.Container(
-                        content=ft.Column([
-                            ft.Row([
-                                ft.Text(
-                                    event.get("name", "Unnamed Event"),
-                                    size=22,
-                                    weight=ft.FontWeight.BOLD,
-                                    color="white"
-                                ),
-                                volunteer_button
-                            ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
-                            ft.Text(f"Date: {event.get('date', 'N/A')}", color="white"),
-                            ft.Text(f"Location: {event.get('location', 'N/A')}", color="white"),
-                            ft.Divider(color="white")
-                        ]),
-                        bgcolor="#1d572c",
-                        border_radius=10,
-                        margin=ft.margin.only(bottom=10)
-                    )
-                )
+                results_list.controls.append(event_container)
+
+                # Add a divider between events
+                results_list.controls.append(ft.Divider(color="white", thickness=1, height=10))
+
         page.update()
 
-    def handle_category_click(e, category_label: str):
-        """Handle category selection and immediately fetch new events."""
-        page.data["category"] = category_label
-        threading.Thread(target=load_events, daemon=True).start()
-
-    def category_row(icon_name: str, label: str):
-        """Create a category button."""
-        return ft.Container(
-            content=ft.Row(
-                controls=[
-                    ft.Icon(name=icon_name, color="white", size=20),
-                    ft.Text(label, color="white", size=16)
-                ],
-                spacing=10,
-                alignment=ft.MainAxisAlignment.START
-            ),
-            padding=ft.padding.all(5),
-            on_click=lambda e: handle_category_click(e, label),
-            ink=True,
-            border_radius=ft.border_radius.all(5)
-        )
-
-    # ----------------- Sidebar (Categories) -----------------
-    category_buttons = ft.Column(
-        controls=[
-            ft.Text("Filters", color="white", size=20, weight=ft.FontWeight.BOLD),
-            ft.Text("Category", color="white", size=16, weight=ft.FontWeight.W_600),
-            category_row(ft.Icons.BUSINESS_CENTER, "Business"),
-            category_row(ft.Icons.RESTAURANT, "Food & Drink"),
-            category_row(ft.Icons.CHILD_CARE, "Family & Education"),
-            category_row(ft.Icons.HEALTH_AND_SAFETY, "Health"),
-            category_row(ft.Icons.DIRECTIONS_BOAT, "Travel"),
-            category_row(ft.Icons.MUSIC_NOTE, "Music"),
-            category_row(ft.Icons.THEATER_COMEDY, "Performing Arts"),
-            category_row(ft.Icons.STYLE, "Fashion"),
-            category_row(ft.Icons.MOVIE, "Film & Media"),
-            category_row(ft.Icons.COLOR_LENS, "Hobbies"),
-            category_row(ft.Icons.HOME, "Home & Lifestyle"),
-            category_row(ft.Icons.GROUP, "Community"),
-            category_row(ft.Icons.VOLUNTEER_ACTIVISM, "Charity & Causes"),
-            category_row(ft.Icons.ACCOUNT_BALANCE, "Government"),
-        ],
-        spacing=15,
-        alignment=ft.MainAxisAlignment.START
+    # Volunteer Dashboard centered with 80% width
+    status_header = ft.Container(
+        content=ft.Row([
+            ft.Icon(ft.icons.VOLUNTEER_ACTIVISM, color="white", size=30),
+            ft.Text("Volunteer Dashboard", size=28, weight=ft.FontWeight.BOLD, color="white")
+        ], spacing=15),
+        padding=ft.padding.only(top=20),  # Keep spacing from top
+        width=page.width * 0.8,  # 80% width
+        alignment=ft.alignment.center  # Center it properly
     )
 
-    side_taskbar = ft.Container(
-        content=category_buttons,
-        width=245,
-        bgcolor="#1d572c",
-        alignment=ft.alignment.top_left,
-        padding=20,
-        margin=ft.margin.only(top=100)
+    # Divider below header (also centered)
+    header_divider = ft.Container(
+        content=ft.Divider(color="white", thickness=2),
+        width=page.width * 0.8,  # Match width with header
+        alignment=ft.alignment.center
     )
 
-    # ----------------- Main Content -----------------
+    # Main content centered with 70% width
     results_list = ft.ListView(expand=True, spacing=10)
 
-    status_header = ft.Row([
-        ft.Icon(ft.icons.VOLUNTEER_ACTIVISM, color="white", size=30),
-        ft.Text("Volunteer Dashboard", size=28, weight=ft.FontWeight.BOLD, color="white")
-    ], spacing=15)
+    # Wrap the results_list in a Container with a fixed height to make it scrollable
+    scrollable_results = ft.Container(
+        content=results_list,
+        height=page.height * 0.73,  # Adjust the height as needed
+        width=page.width * 0.8,
+        alignment=ft.alignment.center
+    )
 
     main_content = ft.Container(
         content=ft.Column([
             status_header,
-            ft.Divider(color="white"),
-            results_list
-        ], spacing=25),
-        margin=ft.margin.only(left=270, top=120, right=40),
-        expand=True
+            header_divider,
+            scrollable_results  # Use the scrollable container here
+        ], spacing=25, alignment=ft.alignment.center),  # Center column
+        width=page.width * 0.8,  # Set width to 70%
+        alignment=ft.alignment.center  # Center it properly
     )
 
-    # ----------------- Assemble Page -----------------
+    # Assemble the page (KEEP THE HEADER)
     page.add(
-        ft.Stack([
-            main_content,
-            taskbar,
-            side_taskbar,
-        ], expand=True)
+        ft.Column([
+            taskbar,  # Header remains at the top
+            ft.Container(  # Center everything properly
+                content=ft.Column([
+                    main_content
+                ], alignment=ft.alignment.center),
+                alignment=ft.alignment.center
+            )
+        ])
     )
     page.update()
 
-    # Load events immediately at startup
     threading.Thread(target=load_events, daemon=True).start()
