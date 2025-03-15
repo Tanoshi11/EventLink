@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import io
 import base64
 from datetime import datetime
-from controller.header_controller import load_header  # Import the header function
+from header import load_header  # Import the header function
 
 # Define theme colors
 BACKGROUND_COLOR = "#c69c5d"
