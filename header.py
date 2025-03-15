@@ -52,7 +52,7 @@ def load_header(page: ft.Page):
         border_color="white",
         bgcolor="#a8730a", 
         color="white",  # White text
-        menu_height=320,
+        #menu_height=320,
     )
 
     search_bar = ft.TextField(

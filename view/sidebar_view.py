@@ -63,8 +63,8 @@ class SidebarView:
 
     def load_create_event(self, e):
         """Loads the event creation page."""
-        from CreateEvents import load_create_event
-        clear_overlay(self.page)
+        from controller.CreateEvents_controller import load_create_event
+        # Corrected: pass self.page instead of page
         load_create_event(self.page)
 
     def open_volunteer_page(self, e):
@@ -83,8 +83,6 @@ class SidebarView:
             handle_logout(self.page)  # Call the function
         except ImportError:
             print("Error: handle_logout() is missing in login_controller.py")
-
-
 
     def close_notifications(self, e):
         if self.notif_popup and self.notif_popup in self.page.overlay:
@@ -105,7 +103,10 @@ class SidebarView:
             return
         try:
             response = httpx.get(f"http://localhost:8000/notifications?username={username}")
-            notifications_data = response.json().get("notifications", [{"message": "No notifications found."}]) if response.status_code == 200 else [{"message": "No notifications found."}]
+            notifications_data = (
+                response.json().get("notifications", [{"message": "No notifications found."}])
+                if response.status_code == 200 else [{"message": "No notifications found."}]
+            )
         except Exception as ex:
             print("Error fetching notifications:", ex)
             notifications_data = [{"message": "Error fetching notifications."}]
