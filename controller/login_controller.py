@@ -55,6 +55,12 @@ class LoginController:
             signup_main(page)
 
 
+def handle_logout(page: ft.Page):
+        """Clears session data and redirects to the login page."""
+        page.data.clear()  # Clears user session
+        page.controls.clear()  # Clears the UI
+        main(page)  # Redirects to login
+
 def main(page: ft.Page):
     controller = LoginController(page)
     controller.view.build(page)
