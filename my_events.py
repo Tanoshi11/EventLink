@@ -1,5 +1,5 @@
 import flet as ft
-from header import load_header  # Import the header function
+from header import load_header
 from datetime import datetime
 import pymongo
 
@@ -125,9 +125,9 @@ def load_my_events(page: ft.Page):
     page.update()
 
 def go_home(page):
-    import homepg
+    import header
     page.controls.clear()
-    homepg.main(page)
+    header.main(page)
     page.update()
 
 def go_event_stats(page):

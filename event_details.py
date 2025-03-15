@@ -1,9 +1,9 @@
 import flet as ft
 import httpx
 from datetime import datetime
-from search import load_search
+from controller.search_controller import load_search
 from header import load_header
-import join_event_form  # Import the join_event_form module
+import controller.join_event_form_controller as join_event_form  # Import the join_event_form module
 
 def load_event_details(page: ft.Page, event: dict, search_context: dict):
     if page.data is None:
@@ -324,11 +324,11 @@ def go_back_to_search(page: ft.Page):
     query = search_context.get("query", "All")
     search_type = search_context.get("search_type", "global")
     location = search_context.get("location", None)
-    import search
+    import controller.search_controller as search
     search.load_search(page, query=query, search_type=search_type, location=location)
 
 def go_back_to_homepage(page: ft.Page):
     """Go back to the homepage and clear the overlay."""
     clear_overlay(page)  # Clear the overlay before navigating
-    import homepg
+    import controller.homepg_controller as homepg
     homepg.load_homepage(page)

@@ -1,7 +1,5 @@
 import flet as ft
 import httpx
-import threading
-import time
 
 # Global variable for the notifications popup
 notif_popup = None
@@ -14,10 +12,11 @@ def clear_overlay(page: ft.Page):
         
 
 def show_profile_page(e):
-    """Open the profile as a popup."""
-    page = e.control.page  # Access the page object from the event
-    import user_profile
-    user_profile.show_profile_popup(page)  # Pass the page object to the popup function
+    page = e.control.page
+    from controller.user_profile_controller import UserProfileController  
+    profile_controller = UserProfileController(page, page.data.get("username"))
+    profile_controller.show_profile()
+
 
 def get_regions():
     """Fetch regions from the server."""
@@ -35,14 +34,6 @@ def load_header(page: ft.Page):
     global notif_popup
 
     # ----------------- Header Functions -----------------
-    def logout(e):
-        def delayed_logout():
-            time.sleep(0.6)
-            if page.data is not None:
-                page.data.clear()
-            import login
-            login.load_login(page)
-        threading.Thread(target=delayed_logout).start()
 
     def close_notifications(e):
         global notif_popup
@@ -139,7 +130,7 @@ def load_header(page: ft.Page):
         print(f"Search triggered - Query: '{query}', Region: '{location}'")
 
         # Call load_search in search.py directly
-        from search import load_search
+        from controller.search_controller import load_search
         load_search(page, query, search_type="global", location=location)
 
     # ----------------- Build the Header UI -----------------
@@ -150,9 +141,10 @@ def load_header(page: ft.Page):
     region_dropdown = ft.Dropdown(
         options=[ft.dropdown.Option(region) for region in regions],
         hint_text="Select Region",
+        hint_style=ft.TextStyle(size=17, color="white"),
         expand=True,
-        border_color="white",  # Dark green border
-        bgcolor="#0C3B2E",  # Dark green background
+        border_color="white",
+        bgcolor="#a8730a", 
         color="white",  # White text
         menu_height=320,
     )
@@ -162,6 +154,7 @@ def load_header(page: ft.Page):
         border=None,
         expand=True,
         text_style=ft.TextStyle(size=17, color="white"),
+        hint_style=ft.TextStyle(size=17, color="white"),
         border_radius=5,
         border_color="white",
         on_submit=search_events  # Trigger search when pressing Enter
@@ -170,12 +163,6 @@ def load_header(page: ft.Page):
     header = ft.Row(
         controls=[
             ft.Container(width=15),
-            # Clickable logo to go home
-            ft.Container(
-                    content=ft.Image(src="images/eventlink.png", width=200, height=80, fit=ft.ImageFit.CONTAIN),
-                    margin=ft.margin.only(right=10),
-                    on_click=lambda e: (clear_overlay(page), __import__("homepg").load_homepage(page))
-                ),
             # Search & Location container
             ft.Container(
                 content=ft.Row(
@@ -192,53 +179,8 @@ def load_header(page: ft.Page):
                 border=ft.border.all(1, "white"),
                 padding=ft.padding.symmetric(horizontal=15, vertical=10),
                 expand=True,
-                bgcolor="#105743",
+                bgcolor="#a8730a",
                 margin=ft.margin.only(top=16, bottom=16, right=30)
-            ),
-            ft.VerticalDivider(width=1, color="white", leading_indent=30, trailing_indent=30),
-            # Events Popup Menu: My Events, Create Event, Volunteer
-            ft.Container(
-                content=ft.PopupMenuButton(
-                    tooltip="",
-                    content=ft.Container(
-                        content=ft.Text(
-                            "Events",
-                            style=ft.TextStyle(size=20, color="white", weight=ft.FontWeight.BOLD, letter_spacing=1.5)
-                        ),
-                        alignment=ft.alignment.center
-                    ),
-                    height=55,
-                    width=175,
-                    bgcolor="#B46617",
-                    menu_position=ft.PopupMenuPosition.UNDER,
-                    items=[
-                        ft.PopupMenuItem(
-                            content=ft.Row([
-                                ft.Icon(name=ft.Icons.CALENDAR_TODAY, color="white", size=15),
-                                ft.Text("My Events", style=ft.TextStyle(color="white", size=15))
-                            ]),
-                            on_click=lambda e: (clear_overlay(page), __import__("homepg").load_my_events(page))
-                        ),
-                        ft.PopupMenuItem(
-                            content=ft.Row([
-                                ft.Icon(name=ft.Icons.EVENT_NOTE, color="white", size=15),
-                                ft.Text("Create Event", style=ft.TextStyle(color="white", size=15))
-                            ]),
-                            on_click=lambda e: (clear_overlay(page), __import__("CreateEvents").load_create_event(page))
-                        ),
-                        ft.PopupMenuItem(
-                            content=ft.Row(
-                                controls=[
-                                    ft.Icon(name=ft.Icons.VOLUNTEER_ACTIVISM, color="white", size=15),
-                                    ft.Text(" Volunteer", style=ft.TextStyle(color="white", size=15))
-                                ],
-                                spacing=5
-                            ),
-                            on_click=lambda e: (clear_overlay(page), __import__("volunteer").load_volunteer(page))
-                        )
-                    ]
-                ),
-                margin=ft.margin.only(left=3, right=3)
             ),
             ft.VerticalDivider(width=1, color="white", leading_indent=30, trailing_indent=30),
             # Notifications Icon
@@ -252,55 +194,32 @@ def load_header(page: ft.Page):
                     width=60
                 ),
                 margin=ft.margin.only(left=40, right=10),
-                border=ft.border.all(2, "#105743"),
+                border=ft.border.all(2, "#FFBA00"),
                 border_radius=30
             ),
-            # Profile Popup
+
             ft.Container(
-                content=ft.PopupMenuButton(
+                content=ft.IconButton(
+                    icon=ft.Icons.PERSON_ROUNDED,
+                    on_click=lambda e: (clear_overlay(page), show_profile_page(e)),
+                    icon_color="#FFBA00",
+                    icon_size=40,
                     tooltip="Profile",
-                    content=ft.Container(
-                        content=ft.Icon(name=ft.Icons.PERSON_ROUNDED, color="#FFBA00", size=40),
-                        alignment=ft.alignment.center
-                    ),
-                    height=55,
-                    width=60,
-                    bgcolor="#B46617",
-                    items=[
-                        ft.PopupMenuItem(
-                            content=ft.Row(
-                                controls=[
-                                    ft.Icon(name=ft.Icons.PERSON_ROUNDED, color="white", size=15),
-                                    ft.Text("Profile", style=ft.TextStyle(color="white", size=15))
-                                ],
-                                spacing=5
-                            ),
-                            on_click=lambda e: (clear_overlay(page), show_profile_page(e))
-                        ),
-                        ft.PopupMenuItem(
-                            content=ft.Row(
-                                controls=[
-                                    ft.Icon(name=ft.Icons.EXIT_TO_APP, color="white", size=15),
-                                    ft.Text("Logout", style=ft.TextStyle(color="white", size=15))
-                                ],
-                                spacing=5
-                            ),
-                            on_click=lambda e: (clear_overlay(page), logout(e))
-                        )
-                    ]
+                    width=60
                 ),
-                margin=ft.margin.only(left=50, right=20),
-                border=ft.border.all(2, "#105743"),
+                margin=ft.margin.only(left=40, right=10),
+                border=ft.border.all(2, "#FFBA00"),
                 border_radius=30
-            )
+            ),
         ]
     )
 
     taskbar = ft.Container(
         content=header,
         height=100,
-        bgcolor="#0C3B2E",
-        alignment=ft.alignment.center,
-        padding=ft.padding.symmetric(horizontal=10)
+        bgcolor="#4d3a17",
+        alignment=ft.alignment.center_right,
+        padding=ft.padding.symmetric(horizontal=10),
+        margin=ft.margin.only(left=240)
     )
     return taskbar

@@ -13,8 +13,6 @@ from flet import (
 )
 import datetime
 import httpx
-from header import load_header  # Import the header
-from search import load_search
 
 PRIMARY_COLOR = "#6d9773"
 SECONDARY_COLOR = "#0c3b2e"
@@ -23,6 +21,15 @@ HIGHLIGHT_COLOR = "#ffba00"
 
 notif_popup = None
 events_text = ft.Text("", color="white")
+
+def get_header_controller():
+    from header import load_header  # Delayed import
+    return load_header
+
+
+def get_load_search():
+    from controller.search_controller import load_search
+    return load_search
 
 
 def fetch_regions():
@@ -58,7 +65,7 @@ def validate_time(time_str):
 
 
 def go_back(e, page):
-    import homepg
+    import controller.homepg_controller as homepg
     page.controls.clear()
     homepg.main(page)
     page.update()
@@ -70,7 +77,11 @@ def main(page: ft.Page):
     page.padding =0
 
   #Header area
-    taskbar = load_header(page) 
+    HeaderController = get_header_controller()
+    header = HeaderController()
+    taskbar = header.header_view  # Extract the UI component
+    page.add(taskbar)  # Now add only the UI
+
 
     # Back button
     back_button = ElevatedButton(
