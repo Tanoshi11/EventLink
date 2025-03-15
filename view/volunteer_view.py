@@ -1,8 +1,6 @@
 import flet as ft
-import threading
-import time
 from datetime import datetime
-from model.volunteer_model import VolunteerModel
+from model.volunteer_model import VolunteerModel  # Update the import statement
 from controller.sidebar_controller import SidebarController
 from controller.volunteer_form_controller import VolunteerFormController
 
@@ -25,22 +23,8 @@ class VolunteerView:
         except ValueError:
             return "Unknown"  # ✅ If parsing fails, return "Unknown"
 
-    def load_events(self, page):
-        """Fetch events and update the UI."""
-        self.scrollable_results.controls.clear()
-        self.scrollable_results.controls.append(ft.Text("Loading Events...", size=20, color="white"))
-        page.update()
-
-        username = page.data.get("username")
-        if not username:
-            self.scrollable_results.controls.append(ft.Text("Error: No user logged in.", size=20, color="red"))
-            page.update()
-            return
-
-        # ✅ Initialize the volunteer form controller
-        form_controller = VolunteerFormController(page)
-        events = form_controller.fetch_joined_events()  # ✅ Fetch events correctly
-
+    def update_event_list(self, page, events):
+        """Updates the event list in the UI."""
         self.scrollable_results.controls.clear()
         if not events:
             self.scrollable_results.controls.append(
@@ -80,7 +64,7 @@ class VolunteerView:
                     border_radius=10,
                     bgcolor="#105743",
                     ink=True,
-                    on_click=lambda e, ev=event: form_controller.show_volunteer_popup(page, ev) if event_status == "Available" else None
+                    on_click=lambda e, ev=event: self.controller.update_volunteer_status(e, ev.get("id")) if event_status == "Available" else None
                 )
                 self.scrollable_results.controls.append(event_container)
                 self.scrollable_results.controls.append(ft.Divider(color="white", thickness=1, height=10))
@@ -88,11 +72,14 @@ class VolunteerView:
         page.update()
 
     def build(self, page: ft.Page):
-        """Builds the volunteer view UI."""
         page.bgcolor = "#d6aa54"
 
-        sidebar_controller = SidebarController(page)
-        sidebar = sidebar_controller.build()
+        # ✅ Only create the sidebar if it hasn't been loaded yet
+        if "sidebar" not in page.data:
+            sidebar_controller = SidebarController(page)
+            page.data["sidebar"] = sidebar_controller.build()  # ✅ Store sidebar once
+
+        sidebar = page.data["sidebar"]  # ✅ Reuse existing sidebar
 
         status_header = ft.Text(
             "Volunteer Dashboard",
@@ -119,8 +106,8 @@ class VolunteerView:
 
         layout = ft.Stack(
             controls=[
-                sidebar,  # Sidebar should be first so it's at the back
-                main_content  # Main content should be on top, but not covering the sidebar
+                sidebar,  # ✅ Sidebar is now persistent
+                main_content  # ✅ Main content stays on top, but sidebar remains clickable
             ],
             expand=True
         )
@@ -128,8 +115,5 @@ class VolunteerView:
         page.controls.clear()
         page.add(layout)
         page.update()
-
-        # Start loading events in the background
-        threading.Thread(target=self.load_events, args=(page,), daemon=True).start()
 
         return layout
