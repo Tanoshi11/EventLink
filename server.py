@@ -56,7 +56,7 @@ app.add_middleware(
 
 @app.get("/get_user")
 def get_user(username: str):
-    user = users_collection.find_one({"username": username}, {"_id": 0})
+    user = users_collection.find_one({"username": {"$regex": f"^{username}$", "$options": "i"}}, {"_id": 0})
     if user:
         return user
     else:

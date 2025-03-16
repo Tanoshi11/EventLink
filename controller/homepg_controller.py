@@ -70,9 +70,9 @@ def main(page: ft.Page):
         "images/eventsample_img3.jpg",
     ]
     slider_descriptions = [
-        "Description for Image 1: A fantastic outdoor event you won't want to miss!",
-        "Description for Image 2: Join us and help the people in need!",
-        "Description for Image 3: Volunteer opportunities to make a positive impact!",
+        "A fantastic outdoor event you won't want to miss!",
+        "Join us and help the people in need!",
+        "Volunteer opportunities to make a positive impact!",
     ]
     animated_slider, animated_text = create_slider(slider_images, slider_descriptions)
     floating_slider_container = create_floating_slider(animated_slider, animated_text)

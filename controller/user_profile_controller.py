@@ -20,12 +20,27 @@ class UserProfileController:
 
         try:
             user_data = self.model.fetch_user_data(username)
-            print(f"Fetched user data: {user_data}")  # Debugging line
+            print(f"✅ Fetched user data for {username}: {user_data}")  # Debugging
+
+            if not user_data:  # Check if the response is empty
+                print("❌ User data is empty!")
+                UserProfileView.show_alert(self.page, "Error", "User profile data is missing.")
+                return
+
+            # Ensure all required fields exist in user_data
+            required_fields = ["username", "email", "contact", "date_joined", "gender", "description", "backup_email", "backup_number", "address"]
+            for field in required_fields:
+                if field not in user_data:
+                    user_data[field] = "N/A"  # Default to "N/A" if missing
+
             self.page.user_data = user_data
-            print(f"Page user data: {self.page.user_data}")  # Debugging line
             UserProfileView.render_profile_popup(self.page, user_data, self)
+
         except Exception as e:
+            print("❌ Error in show_profile:", e)
             UserProfileView.show_alert(self.page, "Error", str(e))
+
+
 
     def edit_profile(self):
         print("✅ edit_profile() was called!")  # Debugging line

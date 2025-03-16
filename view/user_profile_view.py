@@ -1,4 +1,5 @@
 import flet as ft
+import time
 import re
 
 class UserProfileView:
@@ -21,16 +22,21 @@ class UserProfileView:
     @staticmethod
     def render_profile_popup(page: ft.Page, user_data: dict, controller):
         """Renders the user profile popup."""
+        print("✅ render_profile_popup() called successfully!")
+        if not hasattr(page, "overlay"):
+            page.overlay = []
+
+
 
         # --- Local Helper Functions ---
-        def on_edit_description(e):
-            controller.handle_edit_description(description_field, save_button, edit_description)
+        # def on_edit_description(e):
+        #     controller.handle_edit_description(description_field, save_button, edit_description)
         
-        def on_save_description_clicked(e):
-             controller.handle_save_description(page, description_field, save_button, edit_description)
+        # def on_save_description_clicked(e):
+        #      controller.handle_save_description(page, description_field, save_button, edit_description)
 
-        def close_profile(e):
-            controller.close_profile_popup()
+        # def close_profile(e):
+        #     controller.close_profile_popup()
 
         profile_title = ft.Text("Profile Information", size=30, weight=ft.FontWeight.BOLD)
         profile_content = ft.Row([
@@ -224,21 +230,35 @@ class UserProfileView:
             expand=True,
         )
 
-        # Add the stack to the page overlay
-        page.overlay.append(stack)
-        page.update()
+        def force_update():
+            page.update()
+
+        print("🔍 Adding popup to overlay...")
+        page.overlay.clear()  # Ensure no previous popups interfere
+        page.overlay.append(stack)  # Add the profile popup
+        page.update()  # Initial update
+        force_update()  # Force refresh
+
+        print("✅ Popup should now be visible! Current overlays:", page.overlay)
+
+
+
 
     @staticmethod
     def show_profile_popup(page: ft.Page, popup):
+        print("🔍 Directly adding profile popup to overlay...")
+        page.overlay.clear()
         page.overlay.append(popup)
         page.update()
 
 
+
     @staticmethod
     def close_profile_popup(page: ft.Page):
-        """Close the profile popup."""
+        print("❌ Closing profile popup")  # Debugging
         page.overlay.clear()
         page.update()
+
 
     @staticmethod
     def render_edit_profile_popup(page: ft.Page, user_data, controller):
@@ -329,7 +349,6 @@ class UserProfileView:
             bgcolor="rgba(0,0,0,0.5)",  # Semi-transparent overlay
             content=ft.Container(
                 width=450,
-                height= 800,
                 padding=20,
                 border_radius=10,
                 bgcolor="#406157",

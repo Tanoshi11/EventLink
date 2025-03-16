@@ -123,7 +123,7 @@ def load_event_details(page: ft.Page, event: dict, search_context: dict):
         page.overlay.append(blur_overlay)
         page.update()
 
-        JoinEventController.load_join_event_form(
+        JoinEventController.submit_form(
             page,
             title=event.get("name", "Unnamed Event"),
             date=event.get("date", "N/A"),
