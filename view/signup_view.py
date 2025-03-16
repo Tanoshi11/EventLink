@@ -34,10 +34,8 @@ class SignupView:
             border_color="#D4A937",
             border_radius=10,
             content_padding=ft.padding.all(10),
-            input_filter=ft.InputFilter(
-                regex_string=r"\d", allow=True
-            ),
-            max_length=11
+            max_length=11,
+            on_change=self.on_contact_change
         )
         self.signup_password = ft.TextField(
             label="Password",
@@ -127,3 +125,9 @@ class SignupView:
         page.controls.clear()
         page.add(row)
         page.update()
+
+    def on_contact_change(self, e):
+        new_value = ''.join(filter(str.isdigit, e.control.value))
+        if new_value != e.control.value:
+            e.control.value = new_value
+            e.control.update()

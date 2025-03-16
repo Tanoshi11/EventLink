@@ -8,7 +8,7 @@ class VolunteerView:
     def __init__(self, controller):
         self.controller = controller
         self.page = controller.page  # ✅ Store reference to page
-        self.scrollable_results = ft.ListView(expand=True, spacing=10)
+        self.scrollable_results = ft.ListView(expand=True, spacing=10)  # Ensure expand=True
         print("✅ VolunteerView initialized")  # Debugging print
 
     def get_event_status(self, event_date, event_time):
@@ -29,11 +29,10 @@ class VolunteerView:
             return "Unknown"
 
     def update_event_list(self, page, events):
-        """Updates the event list in the UI."""
         print("✅ Updating event list with", len(events), "events")
-        self.scrollable_results.controls.clear()  # ✅ Ensure UI clears old data
+        self.scrollable_results.controls.clear()  # Clear old data
         page.update()  # Force refresh before adding new elements
-        
+
         if not events:
             print("⚠️ No events found to display.")
             self.scrollable_results.controls.append(
@@ -84,9 +83,12 @@ class VolunteerView:
                 self.scrollable_results.controls.append(event_container)
                 self.scrollable_results.controls.append(ft.Divider(color="white", thickness=1, height=10))
 
-        page.update()  # Ensure this is called after all events are added
-        print("Event list updated!")  # ✅ Debugging print
+        # Debugging: Print the controls in scrollable_results
+        print(f"Controls in scrollable_results: {self.scrollable_results.controls}")
 
+        page.update()  # Ensure this is called after all events are added
+        print("Event list updated!")  # Debugging print
+        
     def build(self, page: ft.Page): 
         print("Building VolunteerView UI...")  # Debugging print
         page.bgcolor = "#d6aa54"
@@ -116,8 +118,8 @@ class VolunteerView:
             content=ft.Column([
                 status_header,
                 header_divider,
-                self.scrollable_results,
-                ft.Container(alignment=ft.alignment.center)  # ✅ Add back button
+                self.scrollable_results,  # Ensure this is included
+                ft.Container(alignment=ft.alignment.center)  # Add back button
             ], spacing=20, expand=True),
             margin=ft.margin.only(left=270, top=30, right=40),
             expand=True

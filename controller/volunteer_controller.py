@@ -80,7 +80,6 @@ class VolunteerController:
         threading.Thread(target=self.load_events, daemon=True).start()
 
     def load_events(self):
-        """Fetches joined events and updates the UI properly."""
         try:
             print("Fetching joined events...")  # Debugging print
             self.view.scrollable_results.controls.clear()
@@ -94,10 +93,12 @@ class VolunteerController:
                 print("⚠️ No events found after fetching.")  # Debugging print
                 time.sleep(1)  
 
-            self.view.update_event_list(self.page, events)
+            # Ensure UI updates happen on the main thread
+            self.page.run_task(self.view.update_event_list, self.page, events)
 
         except Exception as e:
             print(f"❌ Error loading events: {e}")
+            print(f"Error details: {e.__class__.__name__}: {str(e)}")  # Detailed error logging
             self.view.scrollable_results.controls.clear()
             self.view.scrollable_results.controls.append(ft.Text("Failed to load events.", size=20, color="red"))
             self.page.update()
