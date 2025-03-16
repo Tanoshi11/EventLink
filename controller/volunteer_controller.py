@@ -1,6 +1,8 @@
 import flet as ft
 import threading
+import time
 import httpx
+from utils import clear_overlay
 from model.volunteer_model import VolunteerModel
 from view.volunteer_view import VolunteerView
 from controller.volunteer_form_controller import VolunteerFormController
@@ -13,10 +15,12 @@ class VolunteerController:
         self.page = page
         self.model = VolunteerModel()
         self.view = VolunteerView(self)
-        self.volunteer_form_controller = VolunteerFormController(page)  # Instantiate VolunteerFormController
-        
-        # ✅ Fix: Define snack bar early so it doesn't crash
-        self.page.snack_bar = ft.SnackBar(ft.Text(""), bgcolor="#4CAF50")
+        self.volunteer_form_controller = VolunteerFormController(page)
+
+        if self.page.data is None:
+            self.page.data = {}
+
+        print("✅ VolunteerController initialized")  # Debugging print
 
     def fetch_joined_events(self):
         """Fetch events from API and return the JSON response."""
@@ -27,10 +31,14 @@ class VolunteerController:
                 return []
 
             url = f"http://localhost:8000/my_events?username={username}"
+            print(f"Fetching events from URL: {url}")  # Debugging print
             response = httpx.get(url)  
-            
+
             if response.status_code == 200:
-                return response.json().get("events", [])
+                print("✅ Successfully fetched events from API.")  # Debugging print
+                events = response.json().get("events", [])
+                print(f"Fetched events: {events}")  # Debugging print
+                return events
             else:
                 print(f"⚠️ API Error: {response.status_code} - {response.text}")
                 return []
@@ -40,49 +48,52 @@ class VolunteerController:
             return []
 
     def load_volunteer(self):
-        """Loads the volunteer page and ensures sidebar is displayed first."""
-        print("✅ load_volunteer() called")
+        """Loads the Volunteer page."""
+        print("Loading Volunteer page...")  # Debugging print
+        if hasattr(self.page, "overlay"):
+            clear_overlay(self.page)
 
         if self.page.data is None:
             self.page.data = {}
 
-        self.page.data["volunteer_form_active"] = True
+        self.page.title = "Volunteer Opportunities"
+        self.page.bgcolor = "#d6aa54"
 
-        # ✅ Preserve sidebar instead of reloading it
-        if "sidebar" not in self.page.data:
-            sidebar_controller = SidebarController(self.page)
-            self.page.data["sidebar"] = sidebar_controller.build()  # Store sidebar
+        sidebar_controller = SidebarController(self.page)
+        sidebar = sidebar_controller.build()
 
-        sidebar = self.page.data["sidebar"]  # Reuse existing sidebar
+        volunteer_view = VolunteerView(self)
 
-        # ✅ Clear volunteer content but keep sidebar
+        main_stack = ft.Stack(
+            controls=[
+                sidebar,
+                volunteer_view.build(self.page)  # ✅ No "Back to Home" button
+            ],
+            expand=True,
+        )
+
         self.page.controls.clear()
+        self.page.add(main_stack)
+        self.page.update()
 
-        # ✅ Build volunteer content correctly
-        volunteer_content = self.view.build(self.page)  
-        if volunteer_content is None:
-            print("⚠️ Error: Volunteer view returned None!")
-            return  
-
-        self.page.add(sidebar)  # ✅ Sidebar stays in place
-        self.page.add(volunteer_content)  # ✅ Add volunteer content below sidebar
-
-        # ✅ Load events in the background
+        print("Starting thread to load events...")  # Debugging print
         threading.Thread(target=self.load_events, daemon=True).start()
-        self.page.update()  # Force UI refresh
 
     def load_events(self):
         """Fetches joined events and updates the UI properly."""
         try:
-            # ✅ Clear event list before loading
+            print("Fetching joined events...")  # Debugging print
             self.view.scrollable_results.controls.clear()
-            self.view.scrollable_results.controls.append(ft.Text("Loading Events...", size=20, color="white"))
+            self.view.scrollable_results.controls.append(ft.Text("Fetching events...", size=20, color="white"))
             self.page.update()
 
-            # ✅ Fetch events using API
-            events = self.fetch_joined_events()  # ✅ Now uses the correct function
+            events = self.fetch_joined_events()  
+            print(f"✅ Debug: Loaded events: {events}")  # Debug print
 
-            # ✅ Update UI with event list
+            if not events:
+                print("⚠️ No events found after fetching.")  # Debugging print
+                time.sleep(1)  
+
             self.view.update_event_list(self.page, events)
 
         except Exception as e:
@@ -99,25 +110,25 @@ class VolunteerController:
                 print("⚠️ No username found in session!")
                 return
             
+            print(f"Updating volunteer status for event: {event_id}")  # Debugging print
             response = httpx.patch(
                 f"http://localhost:8000/update_user?username={username}",
                 json={"status": "Volunteer"}
             )
             
             if response.status_code == 200:
-                # ✅ Fix: Use pre-defined snackbar, not create a new one
+                print("✅ Successfully updated volunteer status.")  # Debugging print
                 self.page.snack_bar.content = ft.Text("You are now a volunteer!")
                 self.page.snack_bar.bgcolor = "#4CAF50"
                 self.page.snack_bar.open = True
 
-                # ✅ Update button state
                 e.control.text = "Volunteering!"
                 e.control.bgcolor = "#4CAF50"
                 e.control.disabled = True
                 e.control.update()
 
         except Exception as ex:
-            # ✅ Fix: Use pre-defined snackbar for error
+            print(f"❌ Error updating status: {ex}")  # Debugging print
             self.page.snack_bar.content = ft.Text(f"Error updating status: {ex}")
             self.page.snack_bar.bgcolor = "red"
             self.page.snack_bar.open = True
@@ -127,6 +138,7 @@ class VolunteerController:
 
 def main(page: ft.Page):
     """Main entry point for the Flet app."""
+    print("Starting Flet app...")  # Debugging print
     controller = VolunteerController(page)
     controller.load_volunteer()
 

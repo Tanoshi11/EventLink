@@ -100,39 +100,29 @@ def load_event_details(page: ft.Page, event: dict, search_context: dict):
 
     def join_event(e):
         """Open the join event form."""
-        print("Adding overlay...")  # Debug statement
-        main_content_left_margin = 290
-        main_content_top_margin = 140
-        main_content_right_margin = 40
-        width_increase = 90
-        height_increase = 100
-        main_content_width = (
-            page.window_width if hasattr(page, "window_width") else page.width if page.width else 1000
-        ) - main_content_left_margin - main_content_right_margin + width_increase
-        main_content_height = page.height * 0.8 + height_increase
+        print("🔍 Opening join event form...")  # Debugging
 
+        # Ensure overlay isn't duplicated
         blur_overlay = ft.Container(
             bgcolor=ft.colors.with_opacity(0.5, ft.colors.BLACK),
-            width=main_content_width,
-            height=main_content_height,
-            top=main_content_top_margin - (height_increase / 2) + 10,
-            left=main_content_left_margin - (width_increase / 2),
-            content=ft.GestureDetector(on_tap=lambda _: None)
+            expand=True
         )
-
         page.overlay.append(blur_overlay)
-        page.update()
 
-        JoinEventController.submit_form(
+        # ✅ Correct way to open the Join Event form
+        join_controller = JoinEventController(
             page,
+            event_id=event.get("id", "N/A"),
             title=event.get("name", "Unnamed Event"),
             date=event.get("date", "N/A"),
             time=event.get("time", "N/A"),
             available_slots=event.get("guest_limit", "N/A"),
-            event_id=event.get("id", "N/A"),
-            back_callback=close_popup,
             join_callback=update_join_button
         )
+        join_controller.show_form()  # ✅ This properly displays the form
+
+        page.update()
+
 
     def close_popup(page_instance=None):
         if page.overlay:
@@ -183,20 +173,20 @@ def load_event_details(page: ft.Page, event: dict, search_context: dict):
         style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=10))
     )
 
-    back_to_home_button = ft.ElevatedButton(
-        text="Back to Home",
-        on_click=lambda e: go_back_to_homepage(page),
-        bgcolor="#C77000",
-        color="white",
-        style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=10))
-    )
+    # back_to_home_button = ft.ElevatedButton(
+    #     text="Back to Home",
+    #     on_click=lambda e: go_back_to_homepage(page),
+    #     bgcolor="#C77000",
+    #     color="white",
+    #     style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=10))
+    # )
 
     container_color = "#21582F"
     button_color = "#C77000"
     buttons_row = ft.Row(
         controls=[
             back_to_search_button,
-            back_to_home_button
+            # back_to_home_button
         ],
         spacing=20,
         alignment=ft.MainAxisAlignment.END
@@ -257,8 +247,8 @@ def go_back_to_search(page: ft.Page):
     import controller.search_controller as search
     search.load_search(page, query=query, search_type=search_type, location=location)
 
-def go_back_to_homepage(page: ft.Page):
-    """Go back to the homepage and clear the overlay."""
-    clear_overlay(page)  # Clear the overlay before navigating
-    import controller.homepg_controller as homepg
-    homepg.load_homepage(page)
+# def go_back_to_homepage(page: ft.Page):
+#     """Go back to the homepage and clear the overlay."""
+#     clear_overlay(page)  # Clear the overlay before navigating
+#     import controller.homepg_controller as homepg
+#     homepg.load_homepage(page)
