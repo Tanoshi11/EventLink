@@ -75,64 +75,75 @@ def search_events(query: str = Query(...), region: str = None):
     - Otherwise, search events where the name or description contains the query (case-insensitive),
       and if region is provided, also filter by location.
     """
-    print(f"Searching events - Query: '{query}', Region: '{region}'")  # Debugging
+    print(f"🔍 Searching events - Query: '{query}', Region: '{region}'")  # Debugging
 
-    # If the query is "All", ignore text filtering.
-    if query.lower() == "all":
-        if region:
-            # Escape special characters in the region for regex
-            escaped_region = re.escape(region)
-            events = list(events_collection.find(
-                {"location": {"$regex": escaped_region, "$options": "i"}},
-                {"_id": 0}
-            ))
+    try:
+        if query.lower() == "all":
+            if region:
+                escaped_region = re.escape(region)
+                events = list(events_collection.find(
+                    {"location": {"$regex": escaped_region, "$options": "i"}},
+                    {"_id": 0}
+                ))
+            else:
+                events = list(events_collection.find({}, {"_id": 0}))
         else:
-            events = list(events_collection.find({}, {"_id": 0}))
-    else:
-        # Build a filter to search in 'name' or 'description'
-        filter_query = {
-            "$or": [
-                {"name": {"$regex": query, "$options": "i"}},
-                {"description": {"$regex": query, "$options": "i"}}
-            ]
-        }
-        if region:
-            # Escape special characters in the region for regex
-            escaped_region = re.escape(region)
-            filter_query["location"] = {"$regex": escaped_region, "$options": "i"}
-        events = list(events_collection.find(filter_query, {"_id": 0}))
+            filter_query = {
+                "$or": [
+                    {"name": {"$regex": query, "$options": "i"}},
+                    {"description": {"$regex": query, "$options": "i"}}
+                ]
+            }
+            if region:
+                escaped_region = re.escape(region)
+                filter_query["location"] = {"$regex": escaped_region, "$options": "i"}
+            events = list(events_collection.find(filter_query, {"_id": 0}))
 
-    # Add event status based on the current date and time
-    for event in events:
-
-        #-----
-
-        time_value = event["time"]
-        if " - " in time_value:
-            start_time = time_value.split(" - ")[0].strip()
-        else:
-            start_time = time_value.strip()
-
-
-
-        ##-------
-
-
-        event_datetime_str = f"{event['date']} {start_time}"
-        event_datetime = datetime.strptime(event_datetime_str, "%Y-%m-%d %H:%M")
+        print(f"✅ Found {len(events)} events.")  # Debugging
         current_datetime = datetime.now()
 
-        if current_datetime > event_datetime:
-            event["status"] = "Closed"
-        elif current_datetime.date() == event_datetime.date():
-            event["status"] = "Ongoing"
-        else:
-            event["status"] = "Upcoming"
+        for event in events:
+            try:
+                print(f"🔹 Processing event: {event}")  # Log each event before processing
 
-    print(f"Found {len(events)} events.")  # Debugging
-    if not events:
-        raise HTTPException(status_code=404, detail="No events found matching the criteria.")
-    return {"events": events}
+                if "date" not in event or "time" not in event:
+                    print("⚠️ Event missing 'date' or 'time':", event)
+                    continue  # Skip this event to prevent crashing
+
+                time_value = event["time"].strip()  # Remove extra spaces
+    
+                # Extract only the start time (before " - ") if a range exists
+                start_time = time_value.split(" - ")[0]  
+
+                # Construct a clean datetime string
+                event_datetime_str = f"{event['date']} {start_time}"
+
+                # Debugging print to verify the extracted datetime string
+                print(f"✅ Cleaned event_datetime_str: {event_datetime_str}")
+
+                # Convert string to datetime
+                event_datetime = datetime.strptime(event_datetime_str, "%Y-%m-%d %H:%M")
+
+                # Assign event status
+                if current_datetime > event_datetime:
+                    event["status"] = "Closed"
+                elif current_datetime.date() == event_datetime.date():
+                    event["status"] = "Ongoing"
+                else:
+                    event["status"] = "Upcoming"
+
+            except ValueError as e:
+                print(f"❌ ValueError: {e} - Event data: {event}")  # Log parsing issues
+
+        if not events:
+            raise HTTPException(status_code=404, detail="No events found matching the criteria.")
+
+        return {"events": events}
+
+    except Exception as e:
+        print(f"🔥 Internal Server Error: {e}")  # Log the error
+        raise HTTPException(status_code=500, detail="Internal Server Error")
+
 
 @app.get("/search_events_by_category")
 def search_events_by_category(category: str):
@@ -142,23 +153,24 @@ def search_events_by_category(category: str):
         {"_id": 0}
     ))
 
-    # Add event status based on the current date and time
+    current_datetime = datetime.now()
+
     for event in events:
+        time_value = event["time"].strip()  # Remove extra spaces
+    
+        # Extract only the start time (before " - ") if a range exists
+        start_time = time_value.split(" - ")[0]  
 
-        #-------
-        time_value = event["time"]
-        if " - " in time_value:
-            start_time = time_value.split(" - ",1)[0].strip()
-
-        else:
-            start_time = time_value.strip()
-
-        #-------
-
+        # Construct a clean datetime string
         event_datetime_str = f"{event['date']} {start_time}"
-        event_datetime = datetime.strptime(event_datetime_str, "%Y-%m-%d %H:%M")
-        current_datetime = datetime.now()
 
+        # Debugging print to verify the extracted datetime string
+        print(f"✅ Cleaned event_datetime_str: {event_datetime_str}")
+
+        # Convert string to datetime
+        event_datetime = datetime.strptime(event_datetime_str, "%Y-%m-%d %H:%M")
+
+        # Assign event status
         if current_datetime > event_datetime:
             event["status"] = "Closed"
         elif current_datetime.date() == event_datetime.date():
@@ -169,6 +181,7 @@ def search_events_by_category(category: str):
     if not events:
         raise HTTPException(status_code=404, detail="No events found for this category.")
     return {"events": events}
+
 
 @app.get("/display_events")
 def display_events():
@@ -287,24 +300,39 @@ def get_my_events(username: str):
 
     # Add event status based on the current date and time
     for event in events:
-        event_datetime_str = f"{event['date']} {event['time']}"
-        event_datetime = datetime.strptime(event_datetime_str, "%Y-%m-%d %H:%M")
-        current_datetime = datetime.now()
+        try:
+            # Extract the start time from the time range (e.g., "18:00 - 22:00" -> "18:00")
+            start_time = event["time"].split(" - ")[0].strip()
 
-        if current_datetime > event_datetime:
-            event["status"] = "Closed"
-        elif current_datetime.date() == event_datetime.date():
-            event["status"] = "Ongoing"
-        else:
-            event["status"] = "Upcoming"
+            # Construct a clean datetime string
+            event_datetime_str = f"{event['date']} {start_time}"
 
-        # Retrieve joined date for the current user from participants
-        for participant in event.get("participants", []):
-            if isinstance(participant, dict) and participant.get("username") == username:
-                event["joined"] = participant.get("joined")
-                break
-        else:
-            event["joined"] = "N/A"
+            # Debugging print to verify the extracted datetime string
+            print(f"✅ Cleaned event_datetime_str: {event_datetime_str}")
+
+            # Convert string to datetime
+            event_datetime = datetime.strptime(event_datetime_str, "%Y-%m-%d %H:%M")
+
+            # Assign event status
+            current_datetime = datetime.now()
+            if current_datetime > event_datetime:
+                event["status"] = "Closed"
+            elif current_datetime.date() == event_datetime.date():
+                event["status"] = "Ongoing"
+            else:
+                event["status"] = "Upcoming"
+
+            # Retrieve joined date for the current user from participants
+            for participant in event.get("participants", []):
+                if isinstance(participant, dict) and participant.get("username") == username:
+                    event["joined"] = participant.get("joined")
+                    break
+            else:
+                event["joined"] = "N/A"
+
+        except Exception as e:
+            print(f"❌ Error processing event {event.get('name')}: {e}")
+            event["status"] = "Unknown"  # Fallback status if parsing fails
 
     if not events:
         raise HTTPException(404, "No joined events found")
