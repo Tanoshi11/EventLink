@@ -88,6 +88,7 @@ pip install pymongo
 pip install bcrypt
 pip install httpx
 pip install pydantic[email]
+pip install matplotlib
 ```
 
 ## 6. Run the FastAPI Server
