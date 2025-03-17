@@ -1,7 +1,8 @@
 import flet as ft
-from header import load_header
 from datetime import datetime
 import pymongo
+from controller.sidebar_controller import SidebarController
+from header import load_header
 
 # Define Colors
 BACKGROUND_COLOR = "#c69c5d"
@@ -27,20 +28,31 @@ def fetch_events():
         return []
 
 def load_my_events(page: ft.Page):
-    """Load the My Events page."""
+    """Load the My Events page with sidebar."""
     page.title = "My Events"
     page.bgcolor = BACKGROUND_COLOR
     page.padding = 0  
 
+    # Load Sidebar
+    if "sidebar" not in page.data:
+        sidebar_controller = SidebarController(page)
+        sidebar = sidebar_controller.build()
+        page.data["sidebar"] = sidebar
+    else:
+        sidebar = page.data["sidebar"]
+
+    # Load Header
+    taskbar = load_header(page)  
+
+    # Fetch Events
     events = fetch_events()
     current_date = datetime.now().date()
-
+    
     past_events, current_events, upcoming_events = [], [], []
     for event in events:
         try:
             event_date = datetime.strptime(event["date"], "%Y-%m-%d").date()
             event_text = ft.Text(event['name'], size=16, color=WHITE, weight=ft.FontWeight.BOLD)
-
             if event_date < current_date:
                 past_events.append(event_text)
             elif event_date == current_date:
@@ -50,17 +62,14 @@ def load_my_events(page: ft.Page):
         except Exception as e:
             print(f"Error parsing event date: {e}")
 
-    taskbar = load_header(page)  # Load the header
-
-    my_events_header = ft.Container(
-        content=ft.Row([
-            ft.Icon(ft.icons.EVENT, color=WHITE, size=30),
-            ft.Text("My Events", size=28, weight=ft.FontWeight.BOLD, color=WHITE)
-        ], spacing=15, alignment=ft.MainAxisAlignment.START),
-        margin=ft.margin.only(left=30, top=20)
+    my_events_header = ft.Text(
+        "My Events",
+        size=30,
+        weight=ft.FontWeight.BOLD,
+        color="#faf9f7"
     )
 
-    divider_line = ft.Divider(color=WHITE, thickness=2)
+    divider_line = ft.Divider(color="white", thickness=1)
 
     def event_section(title, events, bg_color):
         return ft.Container(
@@ -113,21 +122,26 @@ def load_my_events(page: ft.Page):
         )
     ], spacing=10, alignment=ft.MainAxisAlignment.START)
 
-    page.add(
-        taskbar,
-        my_events_header,
-        divider_line,
-        ft.Row([
-            content_container,
-            stats_buttons
-        ], alignment=ft.MainAxisAlignment.START, spacing=10)
+    main_content = ft.Container(
+        content=ft.Column([
+            my_events_header,
+            divider_line,
+            ft.Row([
+                content_container,
+                stats_buttons
+            ], alignment=ft.MainAxisAlignment.START, spacing=10)
+        ], spacing=15, expand=True),
+        margin=ft.margin.only(left=270, top=120, right=40),
+        expand=True
     )
-    page.update()
 
-def go_home(page):
-    import header
+    layout = ft.Stack(
+        controls=[taskbar, sidebar, main_content],
+        expand=True
+    )
+
     page.controls.clear()
-    header.main(page)
+    page.add(layout)
     page.update()
 
 def go_event_stats(page):
