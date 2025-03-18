@@ -118,9 +118,6 @@ def get_regions():
 def search_events(query: str = Query(...), region: str = None):
     """
     Search events by query and optionally by region.
-    - If query is 'All', return all events (or all events for the provided region).
-    - Otherwise, search events where the name or description contains the query (case-insensitive),
-      and if region is provided, also filter by location.
     """
     print(f"🔍 Searching events - Query: '{query}', Region: '{region}'")  # Debugging
 
@@ -128,50 +125,56 @@ def search_events(query: str = Query(...), region: str = None):
         if query.lower() == "all":
             if region:
                 escaped_region = re.escape(region)
-                events = list(events_collection.find(
-                    {"location": {"$regex": escaped_region, "$options": "i"}},
-                    {"_id": 0}
-                ))
+                events = list(
+                    events_collection.find(
+                        {"location": {"$regex": escaped_region, "$options": "i"}},
+                        {"_id": 0},
+                    )
+                )
             else:
                 events = list(events_collection.find({}, {"_id": 0}))
         else:
             filter_query = {
                 "$or": [
-                    {"name": {"$regex": query, "$options": "i"}},
-                    {"description": {"$regex": query, "$options": "i"}}
+                    {"title": {"$regex": query, "$options": "i"}},  # Changed from name to title to match your data
+                    {"description": {"$regex": query, "$options": "i"}},
                 ]
             }
+
             if region:
                 escaped_region = re.escape(region)
                 filter_query["location"] = {"$regex": escaped_region, "$options": "i"}
+
             events = list(events_collection.find(filter_query, {"_id": 0}))
 
         print(f"✅ Found {len(events)} events.")  # Debugging
+
         current_datetime = datetime.now()
 
         for event in events:
             try:
                 print(f"🔹 Processing event: {event}")  # Log each event before processing
 
-                if "date" not in event or "time" not in event:
-                    print("⚠️ Event missing 'date' or 'time':", event)
-                    continue  # Skip this event to prevent crashing
+                if "date_time" not in event or event["date_time"] is None:  # Check for missing or None date_time
+                    print("⚠️ Event missing 'date_time' or it's None:", event)
+                    event["status"] = "Unknown" # Set status if date_time is missing or None
+                    continue  # Skip to the next event
 
-                time_value = event["time"].strip()  # Remove extra spaces
-    
-                # Extract only the start time (before " - ") if a range exists
-                start_time = time_value.split(" - ")[0]  
+                # Parse the date_time string
+                date_time_str = event["date_time"]
+                try:
+                    # Attempt to parse the date_time string
+                    event_datetime = datetime.strptime(date_time_str, "%A, %B %d · %I:%M %p") # Parse your date_time field
+                    # Extract year and replace the datetime object.
+                    year = current_datetime.year
+                    event_datetime = event_datetime.replace(year=year)
+                    print(f"✅ Parsed date_time: {event_datetime}")
 
-                # Construct a clean datetime string
-                event_datetime_str = f"{event['date']} {start_time}"
-
-                # Debugging print to verify the extracted datetime string
-                print(f"✅ Cleaned event_datetime_str: {event_datetime_str}")
-
-                # Convert string to datetime
-                event_datetime = datetime.strptime(event_datetime_str, "%Y-%m-%d %H:%M")
-
-                # Assign event status
+                except ValueError as e:
+                    print(f"❌ ValueError: {e} - Could not parse date_time string: {date_time_str}")
+                    event["status"] = "Unknown" # Set status if parsing fails
+                    continue  # Skip to the next event
+                # Assign event status (compare datetime objects)
                 if current_datetime > event_datetime:
                     event["status"] = "Closed"
                 elif current_datetime.date() == event_datetime.date():
@@ -179,8 +182,11 @@ def search_events(query: str = Query(...), region: str = None):
                 else:
                     event["status"] = "Upcoming"
 
-            except ValueError as e:
-                print(f"❌ ValueError: {e} - Event data: {event}")  # Log parsing issues
+                print(f"✅ Event status: {event.get('status', 'N/A')}")
+
+            except Exception as e:
+                print(f"❌ Error processing event {event.get('title')}: {e}")
+                event["status"] = "Unknown"  # Set a default status in case of error
 
         if not events:
             raise HTTPException(status_code=404, detail="No events found matching the criteria.")

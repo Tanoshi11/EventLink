@@ -1,5 +1,6 @@
 import threading
 import time
+import re
 import flet as ft
 from datetime import datetime
 from model.search_model import fetch_events, get_event_status
@@ -38,39 +39,56 @@ def load_search(page, query, search_type="global", location=None):
 
     def format_event(event):
         """Convert event API data into a proper format for the frontend."""
-        title = event.get("title", "No Title")
-        venue = event.get("venue", "No Venue")
-        full_address = event.get("full_address", "No Address")
-        location = venue  # Use venue instead of full address.
+        formatted_event = {
+            "title": event.get("title", "No Title"),
+            "venue": event.get("venue") or "No Venue",
+            "date": event.get("date"),  # Keep as is (might be None)
+            "time": event.get("time"),  # Keep as is (might be None)
+            "date_time": event.get("date_time"),  # Get the original date_time string
+            "event_id": str(event.get("_id", "No ID")),
+            "link": event.get("link") or "No Link",
+            "image": event.get("image") or "No Image",
+            "available_slots": event.get("available_slots", 10000),
+            "location": event.get("location") or "No Location" #add this in
+        }
 
-        date = event.get("date", "No Date")
-        time_ = event.get("time", "No Time")
-        event_id = event.get("_id", "No ID")
-        link = event.get("link", "No Link")
-        image = event.get("image", "No Image")
-        available_slots = event.get("available_slots", 10000)
+        # Extract date and time from the date_time string if date/time are None
+        if formatted_event["date_time"]:
+            # Use regular expression to extract date and time
+            match = re.match(r"^(.*?)(\d{1,2}:\d{2} [AP]M)$", formatted_event["date_time"])
+            if match:
+                extracted_date = match.group(1).strip()
+                extracted_time = match.group(2).strip()
 
-        return {
-            "title": title,
-            "venue": venue,  # Display venue instead of location
-            "date": date,
-            "time": time_,
-            "event_id": str(event_id),
-            "link": link,
-            "image": image,
-            "available_slots": available_slots,
-        }   
+                # Update date and time only if they are currently None
+                if formatted_event["date"] is None:
+                    formatted_event["date"] = extracted_date
+                if formatted_event["time"] is None:
+                    formatted_event["time"] = extracted_time
+
+                formatted_event["date_time"] = f"{extracted_date} {extracted_time}" #recreate the field
+            else:
+                formatted_event["date_time"] = "Date/Time Not Available" # if all else fails
+
+        else:
+            formatted_event["date_time"] = "Date/Time Not Available"
+
+        return formatted_event
+
 
 
     def load_events():
         time.sleep(0.2)
         events = fetch_events(query, search_type, location)
+        
+        print("Fetched Events:", events)  # Debugging statement
+        
         results_list.controls.clear()
 
         if events:
             for ev in events:
-                # Format the event data
                 formatted_event = format_event(ev)
+                print("Formatted Event:", formatted_event)  # Debugging statement
 
                 # Determine event status
                 event_date_str = formatted_event.get("date", None)
@@ -91,35 +109,42 @@ def load_search(page, query, search_type="global", location=None):
 
                 # Create an event container with all details
                 event_container = ft.Container(
-                    content=ft.Column(
-                        controls=[
-                            ft.Text(formatted_event["title"], size=22, color="white", weight=ft.FontWeight.BOLD),
-                            ft.Divider(color="white"),
-                            ft.Row(
-                                controls=[
-                                    ft.Image(src=formatted_event["image"], width=400, height=200),
-                                    ft.Column(
-                                        controls=[
-                                            ft.Text(f"Date: {formatted_event['date']}", color="white"),
-                                            ft.Text(f"Time: {formatted_event['time']}", color="white"),
-                                            ft.Text(f"Venue: {formatted_event['venue']}", color="white"),  # Display venue
-                                            ft.Text(f"Status: {status_text}", color="red" if is_closed else "green"),  # Display status
-                                            ft.TextButton("Event Link", url=formatted_event["link"], icon_color="blue"),
-                                        ],
-                                        spacing=5
-                                    )
-                                ],
-                                spacing=10
-                            )
-                        ],
-                        spacing=10
-                    ),
-                    padding=10,
-                    border_radius=10,
-                    bgcolor="#105743",
-                    ink=True,
-                    on_click=lambda e, ev=ev: load_event_details(page, ev)
-                )
+                content=ft.Column(
+                    controls=[
+                        ft.Text(formatted_event["title"], size=22, color="white", weight=ft.FontWeight.BOLD),
+                        ft.Divider(color="white"),
+                        ft.Row(
+                            controls=[
+                                ft.Image(src=formatted_event["image"], width=400, height=200),
+                                ft.Column(
+                                    controls=[
+                                        ft.Text(f"Status: {status_text}", color="red" if is_closed else "green"),
+                                        ft.Text(f"Date & Time: {formatted_event['date_time']}", color="white"),
+                                        ft.Text(f"Venue: {formatted_event['venue']}", color="white"),
+                                        ft.TextButton(
+                                            "More Details",
+                                            url=formatted_event["link"],
+                                            style=ft.ButtonStyle(
+                                                bgcolor="white",  # Button background color
+                                                color="black",    # Text color
+                                            ),
+                                        )
+                                    ],
+                                    spacing=5
+                                )
+                            ],
+                            spacing=10
+                        )
+                    ],
+                    spacing=10
+                ),
+                padding=10,
+                border_radius=10,
+                bgcolor="#105743",
+                ink=True,
+                on_click=lambda e, ev=ev: load_event_details(page, ev)
+            )
+
                 # Append the container to the results list
                 results_list.controls.append(event_container)
                 results_list.controls.append(ft.Divider(color="white"))

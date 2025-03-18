@@ -11,15 +11,22 @@ def fetch_events(query, search_type="global", location=None):
             else:
                 url = f"http://localhost:8000/search_events?query={query}"
 
+        print(f"Fetching events from: {url}")  # Debugging output
+
         resp = httpx.get(url)
+        
+        print(f"Response Status Code: {resp.status_code}")  # Debugging output
+        print(f"Response Content: {resp.text}")  # Debugging output
+
         if resp.status_code == 200:
             return resp.json().get("events", [])
         else:
-            print(f"Backend error: {resp.status_code}")
+            print(f"Backend error: {resp.status_code} - {resp.text}")
             return []
     except Exception as ex:
         print(f"Error in fetch_events: {ex}")
         return []
+
 
 def get_event_status(event_date, time_range):
     try:

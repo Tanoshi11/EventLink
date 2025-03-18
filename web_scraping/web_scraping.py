@@ -61,8 +61,8 @@ def parse_date_time(raw_date_time):
         # Remove unnecessary symbols like "•"
         cleaned_text = re.sub(r'[•·]', '', cleaned_text).strip()
 
-        # Extract possible time range (e.g., "10am - 6pm" or "6 PM - 9 PM")
-        time_match = re.search(r'(\d{1,2}(:\d{2})?\s?[APap][Mm])\s*-\s*(\d{1,2}(:\d{2})?\s?[APap][Mm])?', cleaned_text)
+        # Extract possible time range (e.g., "10am - 6pm")
+        time_match = re.search(r'(\d{1,2}(:\d{2})?\s?[APap][Mm])\s*-\s*(\d{1,2}(:\d{2})?\s?[APap][Mm])', cleaned_text)
 
         # Parse full date
         parsed_date = parse(cleaned_text, fuzzy=True)
@@ -72,18 +72,17 @@ def parse_date_time(raw_date_time):
 
         if time_match:
             start_time = time_match.group(1)
-            end_time = time_match.group(3) if time_match.group(3) else None  # Handle missing end time
+            end_time = time_match.group(3)
 
             # Convert to standard time format (e.g., "10:00 AM")
             start_time = parse(start_time, fuzzy=True).strftime('%I:%M %p')
+            end_time = parse(end_time, fuzzy=True).strftime('%I:%M %p')
 
-            if end_time:
-                end_time = parse(end_time, fuzzy=True).strftime('%I:%M %p')
-                return f"{formatted_date} · {start_time} - {end_time}"
-            else:
-                return f"{formatted_date} · {start_time}"  # Single time case
-
-        return f"{formatted_date}"  # If no time at all
+            return f"{formatted_date} · {start_time} - {end_time}"
+        else:
+            # If only a single time exists
+            time_ = parsed_date.strftime('%I:%M %p')
+            return f"{formatted_date} · {time_}"
 
     except Exception as e:
         print(f"⚠️ Error parsing date-time: {raw_date_time} - {e}")

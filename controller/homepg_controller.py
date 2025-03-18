@@ -44,9 +44,10 @@ def slider_loop(page, animated_slider, animated_text, slider_images, slider_desc
         page.update()
 
 def get_random_events():
-    """Fetch up to 4 random events from MongoDB."""
-    events = list(collection.aggregate([{"$sample": {"size": 4}}]))  # Get 4 random events
-    return events if events else [{"image": "images/default_event.jpg", "date": "TBD", "time": "TBD"}] * 4  # Fallback
+    """Fetch up to 6 random events from MongoDB."""
+    events = list(collection.aggregate([{"$sample": {"size": 6}}]))  # Get 6 random events
+    return events if events else [{"image": "images/default_event.jpg", "date": "TBD", "time": "TBD"}] * 6  # Fallback
+
 
 def load_homepage(page: ft.Page):
     """Load the homepage."""
@@ -69,9 +70,9 @@ def main(page: ft.Page):
     events = get_random_events()
 
     # Create event highlights with actual event data
-    event1_highlight, event2_highlight, event3_highlight, event4_highlight = create_event_highlights(events)
+    event_highlights = create_event_highlights(events)
 
-    # Main layout
+    # Add them dynamically
     main_stack = ft.Stack(
         controls=[
             ft.Container(
@@ -86,10 +87,7 @@ def main(page: ft.Page):
                 margin=ft.margin.only(top=10, left=250),
                 padding=20
             ),
-            event1_highlight,
-            event2_highlight,
-            event3_highlight,
-            event4_highlight,
+            *event_highlights,  # Add 6 event containers dynamically
             sidebar_list,
         ],
         expand=True,

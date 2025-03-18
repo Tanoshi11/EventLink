@@ -75,9 +75,9 @@ def load_header(page: ft.Page):
                     controls=[
                         ft.Icon(name=ft.Icons.SEARCH, color="white", size=30),
                         search_bar,
-                        ft.VerticalDivider(width=1, color="white"),
-                        ft.Icon(name=ft.Icons.LOCATION_ON, color="white", size=30),
-                        region_dropdown,
+                        # ft.VerticalDivider(width=1, color="white"),
+                        # ft.Icon(name=ft.Icons.LOCATION_ON, color="white", size=30),
+                        # region_dropdown,
                     ],
                     alignment=ft.MainAxisAlignment.SPACE_BETWEEN
                 ),

@@ -7,7 +7,6 @@ from view.sidebar_view import SidebarView  # Import SidebarView
 from controller.sidebar_controller import SidebarController  # Import SidebarController
 from utils import clear_overlay
 from controller.join_event_form_controller import JoinEventController
-
 def load_event_details(page: ft.Page, event: dict, search_context: dict):
     if page.data is None:
         page.data = {}
@@ -23,80 +22,95 @@ def load_event_details(page: ft.Page, event: dict, search_context: dict):
     sidebar_content = sidebar.build(page)  # Build the sidebar content
 
     # ----------------- Event Details Content -----------------
+    event_title_text = event.get("title", "Unnamed Event")
+    event_date = event.get("date_time", "N/A")
+    event_time = event.get("time", "N/A")
+    date_time = event.get("date_time", "N/A")
+    event_venue = event.get("venue", "N/A")
+    event_description_text = event.get("description", "No description available.")
+
+    # Determine event status
+    event_status_text = "Unknown"
+    status_color = "white"
+    if event_date and event_time:
+        try:
+            event_datetime_str = f"{event_date} {event_time}"
+            event_datetime = datetime.strptime(event_datetime_str, "%Y-%m-%d %I:%M %p")
+            now = datetime.now()
+
+            if event_datetime < now:
+                event_status_text = "Closed"
+                status_color = "#FF5252"
+            elif event_datetime.date() == now.date():
+                event_status_text = "Ongoing"
+                status_color = "#FFEB3B"
+            else:
+                event_status_text = "Upcoming"
+                status_color = "#4CAF50"
+        except ValueError as e:
+            print(f"Error parsing date or time: {e}")
+            event_status_text = "Invalid Date/Time"
+    
     event_title = ft.Text(
-        event.get("name", "Unnamed Event"),
+        event_title_text,
         size=30,
         weight=ft.FontWeight.BOLD,
         color="white",
-        text_align=ft.TextAlign.LEFT
+        text_align=ft.TextAlign.LEFT,
     )
 
     title_divider = ft.Divider(color="white", thickness=1)
+
     event_image = ft.Image(
-        src=event.get("image_url", "default_event_image.jpg"),
+        src=event.get("image", "default_event_image.jpg"),
         width=300,
         height=200,
         fit=ft.ImageFit.COVER,
-        border_radius=20
+        border_radius=20,
     )
-
-    def get_event_status(event_date, event_time):
-        """Determine the status of the event based on the current date and time."""
-        try:
-            if " - " in event_time:
-                start_time = event_time.split(" - ")[0].strip()
-            else:
-                start_time = event_time.strip()
-            event_datetime_str = f"{event_date} {start_time}"
-            event_datetime = datetime.strptime(event_datetime_str, "%Y-%m-%d %H:%M")
-            current_datetime = datetime.now()
-            if current_datetime > event_datetime:
-                return "Closed"
-            elif current_datetime.date() == event_datetime.date():
-                return "Ongoing"
-            else:
-                return "Upcoming"
-        except Exception as ex:
-            print(f"Error in get_event_status: {ex}")
-            return "Unknown"
-
-    event_status = get_event_status(event.get("date", ""), event.get("time", ""))
-    status_color = {
-        "Upcoming": "#4CAF50",
-        "Ongoing": "#FFEB3B",
-        "Closed": "#FF5252"
-    }.get(event_status, "white")
 
     event_details = ft.Column(
         controls=[
-            ft.Text(f'Host: {event.get("host", "Unknown")}', size=20, color="white"),
-            ft.Text(f"Date: {event.get('date', 'N/A')}", size=20, color="white"),
-            ft.Text(f"Time: {event.get('time', 'N/A')}", size=20, color="white"),
-            ft.Text(f"Location: {event.get('location', 'N/A')}", size=20, color="white"),
+            ft.Row(
+                controls=[
+                    ft.Text("Date & Time:", size=20, weight=ft.FontWeight.BOLD, color="white"),
+                    ft.Text(date_time, size=20, color="white"),
+                ],
+                spacing=5,
+            ),
+            ft.Row(
+                controls=[
+                    ft.Text("Venue:", size=20, weight=ft.FontWeight.BOLD, color="white"),
+                    ft.Text(event_venue, size=20, color="white"),
+                ],
+                spacing=5,
+            ),
         ],
         spacing=10,
-        alignment=ft.MainAxisAlignment.START
+        alignment=ft.MainAxisAlignment.START,
     )
+
 
     image_details_row = ft.Row(
         controls=[event_image, event_details],
         spacing=20,
-        alignment=ft.MainAxisAlignment.START
+        alignment=ft.MainAxisAlignment.START,
     )
 
     event_description = ft.Column(
         controls=[
             ft.Text("Description:", size=20, weight=ft.FontWeight.BOLD, color="white"),
             ft.Text(
-                event.get("description", "No description available."),
+                event_description_text,
                 size=18,
                 color="white",
-                text_align=ft.TextAlign.LEFT
-            )
+                text_align=ft.TextAlign.LEFT,
+            ),
         ],
         spacing=5,
-        alignment=ft.MainAxisAlignment.START
+        alignment=ft.MainAxisAlignment.START,
     )
+
 
     def join_event(e):
         """Open the join event form."""
@@ -113,7 +127,7 @@ def load_event_details(page: ft.Page, event: dict, search_context: dict):
         join_controller = JoinEventController(
             page,
             event_id=event.get("id", "N/A"),
-            title=event.get("name", "Unnamed Event"),
+            title=event.get("title", "Unnamed Event"),
             date=event.get("date", "N/A"),
             time=event.get("time", "N/A"),
             available_slots=event.get("guest_limit", "N/A"),
@@ -192,14 +206,13 @@ def load_event_details(page: ft.Page, event: dict, search_context: dict):
         alignment=ft.MainAxisAlignment.END
     )
 
-    if event_status != "Closed":
+    if event_status_text != "Closed":
         buttons_row.controls.insert(0, join_event_button)
 
     event_container = ft.Container(
         content=ft.Column(
             [
-                ft.Text(event.get("name", "Unnamed Event"), size=24, weight="bold", color="white"),
-                ft.Text(f"Status: {event_status}", color=status_color, size=20, weight=ft.FontWeight.BOLD),
+                ft.Text(event.get("title", "Unnamed Event"), size=24, weight="bold", color="white"),
                 ft.Divider(color="white"),
                 image_details_row,
                 ft.Divider(color="white"),

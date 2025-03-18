@@ -76,87 +76,49 @@ def create_category_row(icon_name: str, label: str, on_click):
     )
 
 def create_event_highlights(events):
-    """Create the event highlight containers with real event data."""
+    """Create 6 event highlight containers with real event data."""
     
-    event1 = events[0] if len(events) > 0 else {"image": "images/default_event.jpg", "date": "TBD", "time": "TBD"}
-    event2 = events[1] if len(events) > 1 else {"image": "images/default_event.jpg", "date": "TBD", "time": "TBD"}
-    event3 = events[2] if len(events) > 2 else {"image": "images/default_event.jpg", "date": "TBD", "time": "TBD"}
-    event4 = events[3] if len(events) > 3 else {"image": "images/default_event.jpg", "date": "TBD", "time": "TBD"}
+    # Ensure at least 6 events, or fallback to placeholders
+    event_data = events[:6] + [{"image": "images/default_event.jpg", "date": "TBD", "time": "TBD"}] * (6 - len(events))
 
-    event1_highlight = ft.Container(
-        content=ft.Column(
-            controls=[
-                ft.Image(src=event1["image"], width=400, height=250, fit=ft.ImageFit.COVER, border_radius=20),
-                ft.Text(f"{event1['date']} • {event1['time']}", size=16, color="white", weight=ft.FontWeight.BOLD, text_align=ft.TextAlign.CENTER),
-            ],
-            alignment=ft.alignment.center,
-            spacing=10
-        ),
-        width=410,
-        height=440,
-        bgcolor="#a63b0a",
-        alignment=ft.alignment.top_center,
-        padding=20,
-        border_radius=20,
-        expand=True,
-        margin=ft.margin.only(top=110, left=400, bottom=418)
-    )
+    event_containers = []
+    positions = [
+        (100, 300), (100, 700), (100, 1100),  # Top row
+        (500, 300), (500, 700), (500, 1100)   # Bottom row
+    ]
+    colors = ["#a63b0a", "#a6750a", "#0a9135", "#b6dbf2", "#5D3FD3", "#FF5733"]  # Different background colors
 
-    event2_highlight = ft.Container(
-        content=ft.Column(
-            controls=[
-                ft.Image(src=event2["image"], width=400, height=250, fit=ft.ImageFit.COVER, border_radius=20),
-                ft.Text(f"{event2['date']} • {event2['time']}", size=16, color="white", weight=ft.FontWeight.BOLD, text_align=ft.TextAlign.CENTER),
-            ],
-            alignment=ft.alignment.center,
-            spacing=10
-        ),
-        width=410,
-        height=440,
-        bgcolor="#a6750a",
-        alignment=ft.alignment.top_center,
-        padding=20,
-        border_radius=20,
-        expand=True,
-        margin=ft.margin.only(top=110, left=1000, bottom=418)
-    )
+    for i in range(6):
+        event = event_data[i]
 
-    event3_highlight = ft.Container(
-        content=ft.Column(
-            controls=[
-                ft.Image(src=event3["image"], width=400, height=250, fit=ft.ImageFit.COVER, border_radius=20),
-                ft.Text(f"{event3['date']} • {event3['time']}", size=16, color="white", weight=ft.FontWeight.BOLD, text_align=ft.TextAlign.CENTER),
-            ],
-            alignment=ft.alignment.center,
-            spacing=10
-        ),
-        width=410,
-        height=440,
-        bgcolor="#0a9135",
-        alignment=ft.alignment.top_center,
-        padding=20,
-        border_radius=20,
-        expand=True,
-        margin=ft.margin.only(top=482, left=400, bottom=30)
-    )
+        container = ft.Container(
+            content=ft.Column(
+                controls=[
+                    ft.Image(src=event.get("image", "images/default_event.jpg"), width=400, height=230, fit=ft.ImageFit.CONTAIN, border_radius=20),
+                    ft.Text(event.get("venue", "No Venue"), size=16, color="white", weight=ft.FontWeight.BOLD, text_align=ft.TextAlign.CENTER),
+                    ft.Text(event.get("date_time", "No Date"), size=16, color="white", weight=ft.FontWeight.BOLD, text_align=ft.TextAlign.CENTER),
+                    ft.TextButton(
+                        "More Details",
+                        url=event.get("link", "#"),
+                        style=ft.ButtonStyle(
+                            bgcolor="white",  # Button background color
+                            color="black",    # Text color
+                        ),
+                    )
+                ],
+                alignment=ft.alignment.center,
+                spacing=10
+            ),
+            width=390,
+            height=390,
+            bgcolor=colors[i % len(colors)],  # Rotate colors
+            alignment=ft.alignment.top_center,
+            padding=20,
+            border_radius=20,
+            expand=True,
+            margin=ft.margin.only(top=positions[i][0], left=positions[i][1], bottom=20),
+        )
 
-    event4_highlight = ft.Container(
-        content=ft.Column(
-            controls=[
-                ft.Image(src=event4["image"], width=400, height=250, fit=ft.ImageFit.COVER, border_radius=20),
-                ft.Text(f"{event4['date']} • {event4['time']}", size=16, color="white", weight=ft.FontWeight.BOLD, text_align=ft.TextAlign.CENTER),
-            ],
-            alignment=ft.alignment.center,
-            spacing=10
-        ),
-        width=410,
-        height=440,
-        bgcolor="#b6dbf2",
-        alignment=ft.alignment.top_center,
-        padding=20,
-        border_radius=20,
-        expand=True,
-        margin=ft.margin.only(top=482, left=1000, bottom=30)
-    )
+        event_containers.append(container)
 
-    return event1_highlight, event2_highlight, event3_highlight, event4_highlight
+    return event_containers
