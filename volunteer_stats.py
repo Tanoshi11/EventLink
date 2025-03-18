@@ -1,8 +1,7 @@
-import flet as ft
+import flet as ft 
 import matplotlib.pyplot as plt
 import io
 import base64
-import random
 import pymongo
 from datetime import datetime
 from controller.sidebar_controller import SidebarController
@@ -10,8 +9,6 @@ from controller.sidebar_controller import SidebarController
 # Define theme colors
 BACKGROUND_COLOR = "#d6aa54"
 DARK_RED = "#d9534f"
-GREEN = "#5cb85c"
-MUSTARD_YELLOW = "#f0ad4e"
 WHITE = "#ffffff"
 DARK_TEXT = "#333333"
 CHART_BG_COLOR = "#f7f5ed"
@@ -22,22 +19,11 @@ client = pymongo.MongoClient(MONGO_URI)
 db = client["EventLink"]
 collection = db["events"]
 
-def fetch_available_years():
-    current_year = datetime.now().year
-    years = [str(year) for year in range(current_year - 5, current_year + 1)]
-    return sorted(years, reverse=True)
-
-def fetch_event_data(selected_year):
-    months = [f"{i:02}" for i in range(1, 13)]
-    participants = [random.randint(50, 500) for _ in range(12)]
-    return months, participants
-
 def main(page: ft.Page):
     page.title = "Volunteer Stats"
     page.bgcolor = BACKGROUND_COLOR
     page.padding = 0
 
-    # Load Sidebar
     if "sidebar" not in page.data:
         sidebar_controller = SidebarController(page)
         sidebar = sidebar_controller.build()
@@ -55,12 +41,7 @@ def main(page: ft.Page):
 
     divider_line = ft.Divider(color=WHITE, thickness=2)
 
-    available_years = fetch_available_years()
-    selected_year = available_years[0] if available_years else str(datetime.now().year)
-
-    months, participants = fetch_event_data(selected_year)
-    participants_chart = create_chart(months, participants, "Monthly Volunteer Participation")
-
+    participants_chart = create_chart()
     participants_img = ft.Image(src_base64=participants_chart, width=400, height=300)
 
     graph_section = ft.Container(
@@ -76,26 +57,11 @@ def main(page: ft.Page):
         height=400
     )
 
-    stats_button = ft.Container(
-        content=ft.ElevatedButton(
-            "Back", 
-            on_click=lambda e: go_my_events(page), 
-            bgcolor=WHITE, 
-            color=DARK_TEXT,
-            width=220,
-            height=60,
-            style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=10))
-        ),
-        alignment=ft.alignment.center,
-        margin=ft.margin.only(top=20)
-    )
-
     main_content = ft.Container(
         content=ft.Column([
             volunteer_stats_header,
             divider_line,
-            ft.Row([graph_section], alignment=ft.MainAxisAlignment.CENTER),
-            stats_button
+            ft.Row([graph_section], alignment=ft.MainAxisAlignment.CENTER)
         ], alignment=ft.MainAxisAlignment.CENTER, spacing=20),
         margin=ft.margin.only(left=270, top=30, right=40),
         expand=True
@@ -110,20 +76,12 @@ def main(page: ft.Page):
     page.add(layout)
     page.update()
 
-def go_my_events(page):
-    import my_events
-    page.controls.clear()
-    my_events.load_my_events(page)
-    page.update()
-
-def create_chart(months, data, title):
+def create_chart():
     fig, ax = plt.subplots()
-    ax.plot(months, data, marker="o", linestyle="-", color=DARK_RED, label=title)
-    ax.set_xticks(range(1, 13))
-    ax.set_xticklabels([f"{i:02}" for i in range(1, 13)])
+    ax.plot([], [], marker="o", linestyle="-", color=DARK_RED, label="No Data")
     ax.set_xlabel("Month")
     ax.set_ylabel("Count")
-    ax.set_title(title)
+    ax.set_title("Monthly Volunteer Participation")
     ax.grid(True)
     img_buffer = io.BytesIO()
     fig.savefig(img_buffer, format="png", bbox_inches="tight", facecolor=CHART_BG_COLOR)
