@@ -75,62 +75,88 @@ def create_category_row(icon_name: str, label: str, on_click):
         border_radius=ft.border_radius.all(5),
     )
 
-def create_event_highlights():
-    """Create the event highlight containers."""
+def create_event_highlights(events):
+    """Create the event highlight containers with real event data."""
+    
+    event1 = events[0] if len(events) > 0 else {"image": "images/default_event.jpg", "date": "TBD", "time": "TBD"}
+    event2 = events[1] if len(events) > 1 else {"image": "images/default_event.jpg", "date": "TBD", "time": "TBD"}
+    event3 = events[2] if len(events) > 2 else {"image": "images/default_event.jpg", "date": "TBD", "time": "TBD"}
+    event4 = events[3] if len(events) > 3 else {"image": "images/default_event.jpg", "date": "TBD", "time": "TBD"}
+
     event1_highlight = ft.Container(
-        content=ft.Container(
-            width=410,
-            height=440,
-            bgcolor="#a63b0a",
-            alignment=ft.alignment.top_center,
-            padding=20,
-            border_radius=20
+        content=ft.Column(
+            controls=[
+                ft.Image(src=event1["image"], width=400, height=250, fit=ft.ImageFit.COVER, border_radius=20),
+                ft.Text(f"{event1['date']} • {event1['time']}", size=16, color="white", weight=ft.FontWeight.BOLD, text_align=ft.TextAlign.CENTER),
+            ],
+            alignment=ft.alignment.center,
+            spacing=10
         ),
-        expand=True,
+        width=410,
+        height=440,
+        bgcolor="#a63b0a",
         alignment=ft.alignment.top_center,
-        margin=ft.margin.only(top=110, right=620,bottom=418)
+        padding=20,
+        border_radius=20,
+        expand=True,
+        margin=ft.margin.only(top=110, left=400, bottom=418)
     )
 
     event2_highlight = ft.Container(
-        content=ft.Container(
-            width=410,
-            height=440,
-            bgcolor="#a6750a",
+        content=ft.Column(
+            controls=[
+                ft.Image(src=event2["image"], width=400, height=250, fit=ft.ImageFit.COVER, border_radius=20),
+                ft.Text(f"{event2['date']} • {event2['time']}", size=16, color="white", weight=ft.FontWeight.BOLD, text_align=ft.TextAlign.CENTER),
+            ],
             alignment=ft.alignment.center,
-            padding=20,
-            border_radius=20
+            spacing=10
         ),
-        expand=True,
+        width=410,
+        height=440,
+        bgcolor="#a6750a",
         alignment=ft.alignment.top_center,
-        margin=ft.margin.only(top=110, right=-220,bottom=418)
+        padding=20,
+        border_radius=20,
+        expand=True,
+        margin=ft.margin.only(top=110, left=1000, bottom=418)
     )
 
     event3_highlight = ft.Container(
-        content=ft.Container(
-            width=410,
-            height=440,
-            bgcolor="#0a9135",
+        content=ft.Column(
+            controls=[
+                ft.Image(src=event3["image"], width=400, height=250, fit=ft.ImageFit.COVER, border_radius=20),
+                ft.Text(f"{event3['date']} • {event3['time']}", size=16, color="white", weight=ft.FontWeight.BOLD, text_align=ft.TextAlign.CENTER),
+            ],
             alignment=ft.alignment.center,
-            padding=20,
-            border_radius=20
+            spacing=10
         ),
-        expand=True,
+        width=410,
+        height=440,
+        bgcolor="#0a9135",
         alignment=ft.alignment.top_center,
-        margin=ft.margin.only(top=482, right=620,bottom=30)
+        padding=20,
+        border_radius=20,
+        expand=True,
+        margin=ft.margin.only(top=482, left=400, bottom=30)
     )
 
     event4_highlight = ft.Container(
-        content=ft.Container(
-            width=410,
-            height=440,
-            bgcolor="#b6dbf2",
+        content=ft.Column(
+            controls=[
+                ft.Image(src=event4["image"], width=400, height=250, fit=ft.ImageFit.COVER, border_radius=20),
+                ft.Text(f"{event4['date']} • {event4['time']}", size=16, color="white", weight=ft.FontWeight.BOLD, text_align=ft.TextAlign.CENTER),
+            ],
             alignment=ft.alignment.center,
-            padding=20,
-            border_radius=20
+            spacing=10
         ),
-        expand=True,
+        width=410,
+        height=440,
+        bgcolor="#b6dbf2",
         alignment=ft.alignment.top_center,
-        margin=ft.margin.only(top=482, right=-220,bottom=30)
+        padding=20,
+        border_radius=20,
+        expand=True,
+        margin=ft.margin.only(top=482, left=1000, bottom=30)
     )
 
     return event1_highlight, event2_highlight, event3_highlight, event4_highlight

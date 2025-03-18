@@ -1,11 +1,12 @@
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query , WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, EmailStr
 from pymongo import MongoClient
 import bcrypt
 import re
+import asyncio
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 
 app = FastAPI()
 
@@ -53,6 +54,52 @@ app.add_middleware(
     allow_methods=["*"],  # Allows all methods
     allow_headers=["*"],  # Allows all headers
 )
+
+# WebSocket connection manager
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections: List[WebSocket] = []
+
+    async def connect(self, websocket: WebSocket):
+        await websocket.accept()
+        self.active_connections.append(websocket)
+
+    def disconnect(self, websocket: WebSocket):
+        self.active_connections.remove(websocket)
+
+    async def broadcast(self, message: str):
+        for connection in self.active_connections:
+            await connection.send_text(message)
+
+manager = ConnectionManager()
+
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    await manager.connect(websocket)
+    try:
+        while True:
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        manager.disconnect(websocket)
+
+# Send notification and broadcast via WebSocket
+def send_notification(username: str, message: str):
+    current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    notification = {"username": username, "message": message, "date": current_time}
+    notifications_collection.insert_one(notification)
+
+    formatted_message = f"{username}: {message}"
+
+    # Ensure WebSocket messages are sent correctly
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+
+    asyncio.run_coroutine_threadsafe(manager.broadcast(formatted_message), loop)
+    print(f"📢 WebSocket Notification Sent: {formatted_message}")  # Debugging print
+
 
 @app.get("/get_user")
 def get_user(username: str):
@@ -209,7 +256,7 @@ class UserRegister(BaseModel):
     username: str
     email: EmailStr
     contact: str
-    password: str
+    password: str   
     gender: Optional[str] = "N/A"
 
 class UserLogin(BaseModel):
@@ -236,38 +283,15 @@ def login(user: UserLogin):
 def register(user: UserRegister):
     username_exists = users_collection.find_one({"username": user.username})
     email_exists = users_collection.find_one({"email": user.email})
-
-    if username_exists and email_exists:
-        raise HTTPException(status_code=400, detail="Username and Email already exist")
-    elif username_exists:
-        raise HTTPException(status_code=400, detail="Username already exists")
-    elif email_exists:
-        raise HTTPException(status_code=400, detail="Email already exists")
-
-    # Delete existing notifications for the username
-    notifications_collection.delete_many({"username": user.username})
-
-    hashed_password = bcrypt.hashpw(user.password.encode(), bcrypt.gensalt())
-    user_data = {
-        "username": user.username,
-        "email": user.email,
-        "contact": user.contact,
-        "password": hashed_password.decode(),
-        "gender": user.gender,
-        "date_joined": datetime.now().strftime("%Y-%m-%d"),
-        "description": "Describe Yourself!"
-    }
+    
+    if username_exists or email_exists:
+        raise HTTPException(status_code=400, detail="Username or Email already exists")
+    
+    hashed_password = bcrypt.hashpw(user.password.encode(), bcrypt.gensalt()).decode()
+    user_data = {"username": user.username, "email": user.email, "password": hashed_password}
     users_collection.insert_one(user_data)
     
-    # Create a welcome notification with date and time
-    current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    welcome_notification = {
-        "username": user.username,
-        "message": f"Welcome to EventLink! Thank you for signing up.\n------------------------\n{current_time}",
-        "date": current_time
-    }
-    notifications_collection.insert_one(welcome_notification)
-
+    send_notification(user.username, "Welcome to EventLink! Thank you for signing up.")
     return {"message": "Registration successful"}
 
 @app.get("/all_events")
@@ -402,14 +426,14 @@ class Event(BaseModel):
     created_at: str
 
 @app.post("/create_event")
-def create_event(event: Event):
-    try:
-        event_data = event.dict()
-        event_data["created_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        events_collection.insert_one(event_data)
-        return {"message": "Event created successfully"}
-    except Exception as ex:
-        raise HTTPException(status_code=500, detail=f"Error creating event: {ex}")
+def create_event(event: BaseModel):
+    event_data = event.dict()
+    event_data["created_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    events_collection.insert_one(event_data)
+    
+    send_notification(event.host, f"Your event '{event.name}' has been created!")
+    return {"message": "Event created successfully"}
+
 
 from pydantic import BaseModel
 
@@ -422,26 +446,15 @@ def join_event(request: JoinEventRequest):
     event = events_collection.find_one({"name": request.event_name})
     if not event:
         raise HTTPException(status_code=404, detail="Event not found.")
-
-    participants = event.get("participants", [])
-    if any(isinstance(p, dict) and p.get("username") == request.username for p in participants):
-        raise HTTPException(status_code=400, detail="User already joined this event.")
-
-    current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    
     events_collection.update_one(
         {"name": request.event_name},
-        {"$push": {"participants": {"username": request.username, "joined": current_time}}}
+        {"$push": {"participants": request.username}}
     )
-
-    notification = {
-        "username": request.username,
-        "message": f"You have joined the event: {request.event_name}\n------------------------\n{current_time}",
-        "date": current_time
-    }
-    notifications_collection.insert_one(notification)
-    print(f"Notification created: {notification}")  # Debug print
-
+    
+    send_notification(request.username, f"You have joined the event '{request.event_name}'!")
     return {"message": "Event joined successfully"}
+
 
 if __name__ == "__main__":
     import uvicorn

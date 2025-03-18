@@ -1,17 +1,20 @@
-# homepg_controller.py
 import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-
+import random
 import flet as ft
 import time
 import threading
+from pymongo import MongoClient
 from header import load_header
 from controller.search_controller import load_search
 from controller.category_list_controller import CategoryListController
 from controller.sidebar_controller import SidebarController
-from view.homepg_view import create_slider, create_floating_slider, create_event_highlights
+from view.homepg_view import create_event_highlights
 
+client = MongoClient("mongodb+srv://Tanoshi:nathaniel111@eventlink.1hfcs.mongodb.net/")
+db = client["EventLink"]
+collection = db["events"]
 
 
 def handle_category_click(page, category_label):
@@ -40,9 +43,14 @@ def slider_loop(page, animated_slider, animated_text, slider_images, slider_desc
         )
         page.update()
 
+def get_random_events():
+    """Fetch up to 4 random events from MongoDB."""
+    events = list(collection.aggregate([{"$sample": {"size": 4}}]))  # Get 4 random events
+    return events if events else [{"image": "images/default_event.jpg", "date": "TBD", "time": "TBD"}] * 4  # Fallback
+
 def load_homepage(page: ft.Page):
     """Load the homepage."""
-    main(page)  # Call the main function to load the homepage
+    main(page)
 
 def main(page: ft.Page):
     """Main function to load the homepage."""
@@ -52,38 +60,18 @@ def main(page: ft.Page):
     page.bgcolor = "#d6aa54"
     page.padding = 0
 
-    # Load the header
+    # Load header and sidebar
     header = load_header(page)
-
-    #category_list
-    category_list_controller = CategoryListController(page)
-    category_list = category_list_controller.build()
-
-    #sidebar list
     sidebar_controller = SidebarController(page)
     sidebar_list = sidebar_controller.build()
 
-    # Create the slider
-    slider_images = [
-        "images/eventsample_img1.jpg",
-        "images/eventsample_img2.png",
-        "images/eventsample_img3.jpg",
-    ]
-    slider_descriptions = [
-        "A fantastic outdoor event you won't want to miss!",
-        "Join us and help the people in need!",
-        "Volunteer opportunities to make a positive impact!",
-    ]
-    animated_slider, animated_text = create_slider(slider_images, slider_descriptions)
-    floating_slider_container = create_floating_slider(animated_slider, animated_text)
+    # Fetch 4 random events from MongoDB
+    events = get_random_events()
 
-    # Start the slider loop in a background thread
-    threading.Thread(target=slider_loop, args=(page, animated_slider, animated_text, slider_images, slider_descriptions), daemon=True).start()
+    # Create event highlights with actual event data
+    event1_highlight, event2_highlight, event3_highlight, event4_highlight = create_event_highlights(events)
 
-    # Create event highlights
-    event1_highlight, event2_highlight, event3_highlight, event4_highlight = create_event_highlights()
-
-    # Main stack layout
+    # Main layout
     main_stack = ft.Stack(
         controls=[
             ft.Container(
@@ -102,10 +90,7 @@ def main(page: ft.Page):
             event2_highlight,
             event3_highlight,
             event4_highlight,
-            floating_slider_container,
-            # header,
             sidebar_list,
-            # category_list,
         ],
         expand=True,
     )
