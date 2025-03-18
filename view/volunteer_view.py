@@ -8,53 +8,44 @@ class VolunteerView:
     def __init__(self, controller):
         self.controller = controller
         self.page = controller.page  # ✅ Store reference to page
-        self.scrollable_results = ft.ListView(expand=True, spacing=10)
+        self.scrollable_results = ft.ListView(expand=True, spacing=10)  # Ensure expand=True
+        print("✅ VolunteerView initialized")  # Debugging print
 
     def get_event_status(self, event_date, event_time):
         """Determine the status of the event based on the current date and time."""
         try:
-            event_time = event_time.split(" - ")[0]  # ✅ Extract only start time
+            if not event_date or not event_time:
+                print("⚠️ Event date or time is missing.")
+                return "Unknown"
+                
+            event_time = event_time.split(" - ")[0] if " - " in event_time else event_time  # ✅ Fix time extraction
             event_datetime_str = f"{event_date} {event_time}"
+            print("Parsed datetime string:", event_datetime_str)  # ✅ Debugging print
+
             event_datetime = datetime.strptime(event_datetime_str, "%Y-%m-%d %H:%M")
             return "Closed" if datetime.now() > event_datetime else "Available"
-        except ValueError:
+        except ValueError as e:
+            print("❌ Error parsing date/time:", e)  # ✅ Debugging print
             return "Unknown"
 
-    def handle_sidebar_click(self, e, label):
-        """Handle sidebar button clicks properly."""
-        print(f"✅ Sidebar Button Clicked: {label}")  
-
-        self.page.controls.clear()  # ✅ Clear the page before switching
-
-        if label == "Search Events":
-            from controller.search_controller import load_search
-            load_search(self.page, query="All")
-
-        elif label == "My Events":
-            from my_events import load_my_events
-            load_my_events(self.page)
-
-        elif label == "Create Event":
-            from CreateEvents import load_create_event
-            load_create_event(self.page)
-
-        elif label == "Volunteer":
-            from controller.volunteer_controller import load_volunteer
-            load_volunteer(self.page)
-
-        self.page.update()
-
     def update_event_list(self, page, events):
-        """Updates the event list in the UI."""
-        self.scrollable_results.controls.clear()
-        
+        print("✅ Updating event list with", len(events), "events")
+        self.scrollable_results.controls.clear()  # Clear old data
+        page.update()  # Force refresh before adding new elements
+
         if not events:
+            print("⚠️ No events found to display.")
             self.scrollable_results.controls.append(
                 ft.Text("You haven't joined any events.", size=20, color="white")
             )
         else:
+            print(f"Processing {len(events)} events")  # Debugging print
             for event in events:
+                print(f"Processing event: {event.get('name', 'Unnamed')}")  # Debugging print
+                print(f"Event data: {event}")  # Debugging print
+                
                 event_status = self.get_event_status(event.get("date", ""), event.get("time", ""))
+                print(f"Event status: {event_status}")  # Debugging print
                 status_color = {"Available": "#4CAF50", "Closed": "#FF5252"}.get(event_status, "white")
                 text_color = "white" if event_status == "Available" else "#B0B0B0"
 
@@ -86,33 +77,30 @@ class VolunteerView:
                     border_radius=10,
                     bgcolor="#105743",
                     ink=True,
-                    on_click=lambda e, ev=event: self.controller.update_volunteer_status(e, ev.get("id")) if event_status == "Available" else None
+                    on_click=lambda e, ev=event: self.controller.update_volunteer_status(e, ev.get("name")) if event_status == "Available" else None
                 )
+                
                 self.scrollable_results.controls.append(event_container)
                 self.scrollable_results.controls.append(ft.Divider(color="white", thickness=1, height=10))
 
-        page.update()
+        # Debugging: Print the controls in scrollable_results
+        print(f"Controls in scrollable_results: {self.scrollable_results.controls}")
 
-
-    def build(self, page: ft.Page):
+        page.update()  # Ensure this is called after all events are added
+        print("Event list updated!")  # Debugging print
+        
+    def build(self, page: ft.Page): 
+        print("Building VolunteerView UI...")  # Debugging print
         page.bgcolor = "#d6aa54"
 
-        # ✅ Ensure sidebar is stored and reused
         if "sidebar" not in page.data:
+            print("Building sidebar...")  # Debugging print
             sidebar_controller = SidebarController(page)
             sidebar = sidebar_controller.build()
             page.data["sidebar"] = sidebar
         else:
             sidebar = page.data["sidebar"]
-
-        # ✅ Manually assign click handlers to ALL sidebar buttons
-        sidebar_controls = sidebar.content.controls[0].controls  # 🔍 Extract sidebar items
-
-        if sidebar_controls:
-            for btn in sidebar_controls:
-                if isinstance(btn, ft.Container) and btn.on_click is None:
-                    btn.on_click = lambda e, label=btn.content.controls[1].value: self.handle_sidebar_click(e, label)
-        
+            
         status_header = ft.Text(
             "Volunteer Dashboard",
             size=30,
@@ -127,13 +115,18 @@ class VolunteerView:
         )
 
         main_content = ft.Container(
-            content=ft.Column([status_header, header_divider, self.scrollable_results], spacing=20, expand=True),
+            content=ft.Column([
+                status_header,
+                header_divider,
+                self.scrollable_results,  # Ensure this is included
+                ft.Container(alignment=ft.alignment.center)  # Add back button
+            ], spacing=20, expand=True),
             margin=ft.margin.only(left=270, top=30, right=40),
             expand=True
         )
 
         layout = ft.Stack(
-            controls=[sidebar, main_content],  # ✅ Sidebar stays persistent
+            controls=[sidebar, main_content],
             expand=True
         )
 
@@ -141,4 +134,5 @@ class VolunteerView:
         page.add(layout)
         page.update()
 
+        print("VolunteerView UI built successfully.")  # Debugging print
         return layout

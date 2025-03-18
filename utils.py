@@ -1,7 +1,7 @@
 import flet as ft
 
-def clear_overlay(page: ft.Page):
-    """Clear the overlay (e.g., join event form) from the page."""
-    if page.overlay:
+def clear_overlay(page):
+    """Safely clear overlays before navigating to a new page."""
+    if hasattr(page, "overlay") and page.overlay:
         page.overlay.clear()
         page.update()
