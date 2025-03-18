@@ -14,7 +14,11 @@ class VolunteerController:
             raise ValueError("Page cannot be None in VolunteerController")
         self.page = page
         self.model = VolunteerModel()
-        self.view = VolunteerView(self)
+
+        # ✅ Prevents recreating VolunteerView
+        if not hasattr(self, 'view'):
+            self.view = VolunteerView(self)
+
         self.volunteer_form_controller = VolunteerFormController(page)
 
         if self.page.data is None:
@@ -34,10 +38,17 @@ class VolunteerController:
             print(f"Fetching events from URL: {url}")  # Debugging print
             response = httpx.get(url)  
 
+            print(f"Raw API Response: {response.text}")  # ✅ Debug API response
+
             if response.status_code == 200:
                 print("✅ Successfully fetched events from API.")  # Debugging print
                 events = response.json().get("events", [])
-                print(f"Fetched events: {events}")  # Debugging print
+
+                # ✅ Debug event processing
+                for event in events:
+                    print(f"Processing event: {event}")  
+                    print(f"Event name: {event.get('name', 'Unnamed Event')}")
+
                 return events
             else:
                 print(f"⚠️ API Error: {response.status_code} - {response.text}")
@@ -62,12 +73,10 @@ class VolunteerController:
         sidebar_controller = SidebarController(self.page)
         sidebar = sidebar_controller.build()
 
-        volunteer_view = VolunteerView(self)
-
         main_stack = ft.Stack(
             controls=[
                 sidebar,
-                volunteer_view.build(self.page)  # ✅ No "Back to Home" button
+                self.view.build(self.page)  # ✅ Reusing VolunteerView
             ],
             expand=True,
         )
@@ -84,24 +93,25 @@ class VolunteerController:
             print("Fetching joined events...")  # Debugging print
             self.view.scrollable_results.controls.clear()
             self.view.scrollable_results.controls.append(ft.Text("Fetching events...", size=20, color="white"))
-            self.page.update()
+            self.page.update()  # ✅ Ensure UI updates before fetching data
 
             events = self.fetch_joined_events()  
-            print(f"✅ Debug: Loaded events: {events}")  # Debug print
+            print(f"✅ Debug: Loaded events: {events}")  # Debugging print
 
             if not events:
                 print("⚠️ No events found after fetching.")  # Debugging print
-                time.sleep(1)  
+                time.sleep(1)
 
-            # Ensure UI updates happen on the main thread
-            self.page.run_task(self.view.update_event_list, self.page, events)
+            # ✅ No need for `run_on_main`, just update directly
+            self.view.update_event_list(self.page, events)
+            self.page.update()
 
         except Exception as e:
             print(f"❌ Error loading events: {e}")
-            print(f"Error details: {e.__class__.__name__}: {str(e)}")  # Detailed error logging
             self.view.scrollable_results.controls.clear()
             self.view.scrollable_results.controls.append(ft.Text("Failed to load events.", size=20, color="red"))
             self.page.update()
+
 
     def update_volunteer_status(self, e, event_id: str):
         """Updates the user status to 'Volunteer' for an event."""
