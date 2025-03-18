@@ -28,9 +28,6 @@ class JoinEventView:
         self.form = ft.Column(
             controls=[
                 ft.Text(f"Join Event: {model.title}", size=24, weight=ft.FontWeight.BOLD, color="#FDF7E3"),
-                ft.Text(f"Date: {model.date}", color="#FDF7E3"),
-                ft.Text(f"Time: {model.time}", color="#FDF7E3"),
-                ft.Text(f"Available slots: {model.available_slots}", color="#FDF7E3"),
                 self.event_attend_name,
                 self.event_ticket_tobuy,
                 ft.Row(
