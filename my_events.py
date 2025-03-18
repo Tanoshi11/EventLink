@@ -2,10 +2,9 @@ import flet as ft
 from datetime import datetime
 import pymongo
 from controller.sidebar_controller import SidebarController
-from header import load_header
 
 # Define Colors
-BACKGROUND_COLOR = "#c69c5d"
+BACKGROUND_COLOR = "#d6aa54"
 DARK_RED = "#d9534f"
 GREEN = "#5cb85c"
 MUSTARD_YELLOW = "#f0ad4e"
@@ -28,7 +27,7 @@ def fetch_events():
         return []
 
 def load_my_events(page: ft.Page):
-    """Load the My Events page with sidebar."""
+    """Load the My Events page."""
     page.title = "My Events"
     page.bgcolor = BACKGROUND_COLOR
     page.padding = 0  
@@ -41,8 +40,6 @@ def load_my_events(page: ft.Page):
     else:
         sidebar = page.data["sidebar"]
 
-    # Load Header
-    taskbar = load_header(page)  
 
     # Fetch Events
     events = fetch_events()
@@ -62,11 +59,13 @@ def load_my_events(page: ft.Page):
         except Exception as e:
             print(f"Error parsing event date: {e}")
 
-    my_events_header = ft.Text(
-        "My Events",
-        size=30,
-        weight=ft.FontWeight.BOLD,
-        color="#faf9f7"
+    my_events_header = ft.Row(
+        [
+            ft.Icon(name=ft.icons.CALENDAR_MONTH, color=WHITE, size=30),
+            ft.Text("My Events", size=30, weight=ft.FontWeight.BOLD, color="#faf9f7"),
+        ],
+        alignment=ft.MainAxisAlignment.START,
+        spacing=10
     )
 
     divider_line = ft.Divider(color="white", thickness=1)
@@ -75,7 +74,7 @@ def load_my_events(page: ft.Page):
         return ft.Container(
             content=ft.Column([
                 ft.Text(title, size=22, weight=ft.FontWeight.BOLD, color=WHITE, text_align=ft.TextAlign.CENTER),
-                ft.Column(events if events else [ft.Text("No events", color=WHITE, text_align=ft.TextAlign.CENTER)],
+                ft.Column(events if events else [ft.Text("Loading events...", color=WHITE, text_align=ft.TextAlign.CENTER)],
                           alignment=ft.MainAxisAlignment.CENTER, expand=True),
             ], spacing=10, alignment=ft.MainAxisAlignment.CENTER, expand=True),
             bgcolor=bg_color,
@@ -85,9 +84,9 @@ def load_my_events(page: ft.Page):
         )
 
     events_container = ft.Row([
-        event_section("Past Events", past_events, DARK_RED),
-        event_section("Current Events", current_events, GREEN),
-        event_section("Upcoming Events", upcoming_events, MUSTARD_YELLOW),
+        event_section("Joined Events", past_events, MUSTARD_YELLOW),
+        event_section("Volunteered Events", current_events, MUSTARD_YELLOW),
+        event_section("My Created Events", upcoming_events, MUSTARD_YELLOW),
     ], spacing=20, alignment=ft.MainAxisAlignment.CENTER, expand=True)
 
     content_container = ft.Container(
@@ -131,12 +130,12 @@ def load_my_events(page: ft.Page):
                 stats_buttons
             ], alignment=ft.MainAxisAlignment.START, spacing=10)
         ], spacing=15, expand=True),
-        margin=ft.margin.only(left=270, top=120, right=40),
+        margin=ft.margin.only(left=270, top=30, right=40),
         expand=True
     )
 
     layout = ft.Stack(
-        controls=[taskbar, sidebar, main_content],
+        controls=[sidebar, main_content],
         expand=True
     )
 
