@@ -1,14 +1,14 @@
 import flet as ft
-import pymongo
 import matplotlib.pyplot as plt
 import io
 import base64
+import random
+import pymongo
 from datetime import datetime
 from controller.sidebar_controller import SidebarController
-from header import load_header  # Import the header function
 
 # Define theme colors
-BACKGROUND_COLOR = "#c69c5d"
+BACKGROUND_COLOR = "#d6aa54"
 DARK_RED = "#d9534f"
 GREEN = "#5cb85c"
 MUSTARD_YELLOW = "#f0ad4e"
@@ -23,26 +23,13 @@ db = client["EventLink"]
 collection = db["events"]
 
 def fetch_available_years():
-    years = collection.distinct("date")
-    years = sorted(set(date[:4] for date in years if len(date) >= 4), reverse=True)
-    return years
+    current_year = datetime.now().year
+    years = [str(year) for year in range(current_year - 5, current_year + 1)]
+    return sorted(years, reverse=True)
 
 def fetch_event_data(selected_year):
-    pipeline = [
-        {"$addFields": {
-            "event_year": {"$substr": ["$date", 0, 4]},
-            "event_month": {"$substr": ["$date", 5, 2]}
-        }},
-        {"$match": {"event_year": str(selected_year)}},
-        {"$group": {
-            "_id": "$event_month",
-            "total_participants": {"$sum": "$participants"}
-        }},
-        {"$sort": {"_id": 1}}
-    ]
-    data = list(collection.aggregate(pipeline))
-    months = [item["_id"] for item in data]
-    participants = [item["total_participants"] for item in data]
+    months = [f"{i:02}" for i in range(1, 13)]
+    participants = [random.randint(50, 500) for _ in range(12)]
     return months, participants
 
 def main(page: ft.Page):
@@ -57,8 +44,6 @@ def main(page: ft.Page):
         page.data["sidebar"] = sidebar
     else:
         sidebar = page.data["sidebar"]
-
-    taskbar = load_header(page)  # Load the header
 
     volunteer_stats_header = ft.Container(
         content=ft.Row([
@@ -87,8 +72,8 @@ def main(page: ft.Page):
         padding=20,
         border_radius=15,
         alignment=ft.alignment.center,
-        width=600,  # Increased width to better center the graph
-        height=400  # Increased height for better visibility
+        width=600,
+        height=400
     )
 
     stats_button = ft.Container(
@@ -117,7 +102,7 @@ def main(page: ft.Page):
     )
 
     layout = ft.Stack(
-        controls=[taskbar, sidebar, main_content],
+        controls=[sidebar, main_content],
         expand=True
     )
 
