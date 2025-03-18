@@ -7,7 +7,7 @@ from pymongo import MongoClient
 client = MongoClient("mongodb+srv://Tanoshi:nathaniel111@eventlink.1hfcs.mongodb.net/")
 db = client["EventLink"]
 
-collections = ["users", "regions", "events", "notifications"] # if needed to delete others, just add them here
+collections = ["events"] # if needed to delete others, just add them here
 
 for collection_name in collections:
     collection = db[collection_name]

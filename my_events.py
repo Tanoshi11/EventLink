@@ -1,10 +1,10 @@
 import flet as ft
-from header import load_header  # Import the header function
 from datetime import datetime
 import pymongo
+from controller.sidebar_controller import SidebarController
 
 # Define Colors
-BACKGROUND_COLOR = "#c69c5d"
+BACKGROUND_COLOR = "#d6aa54"
 DARK_RED = "#d9534f"
 GREEN = "#5cb85c"
 MUSTARD_YELLOW = "#f0ad4e"
@@ -17,56 +17,42 @@ client = pymongo.MongoClient(MONGO_URI)
 db = client["EventLink"]
 collection = db["events"]
 
-def fetch_events():
-    """Fetch events from MongoDB."""
-    try:
-        events = list(collection.find({}, {"_id": 0, "name": 1, "date": 1}))
-        return events
-    except Exception as ex:
-        print("Error fetching events:", ex)
-        return []
-
 def load_my_events(page: ft.Page):
-    """Load the My Events page."""
+    """Load the My Events page with hardcoded event data."""
     page.title = "My Events"
     page.bgcolor = BACKGROUND_COLOR
     page.padding = 0  
 
-    events = fetch_events()
-    current_date = datetime.now().date()
+    # Load Sidebar
+    if "sidebar" not in page.data:
+        sidebar_controller = SidebarController(page)
+        sidebar = sidebar_controller.build()
+        page.data["sidebar"] = sidebar
+    else:
+        sidebar = page.data["sidebar"]
 
-    past_events, current_events, upcoming_events = [], [], []
-    for event in events:
-        try:
-            event_date = datetime.strptime(event["date"], "%Y-%m-%d").date()
-            event_text = ft.Text(event['name'], size=16, color=WHITE, weight=ft.FontWeight.BOLD)
-
-            if event_date < current_date:
-                past_events.append(event_text)
-            elif event_date == current_date:
-                current_events.append(event_text)
-            else:
-                upcoming_events.append(event_text)
-        except Exception as e:
-            print(f"Error parsing event date: {e}")
-
-    taskbar = load_header(page)  # Load the header
-
-    my_events_header = ft.Container(
-        content=ft.Row([
-            ft.Icon(ft.icons.EVENT, color=WHITE, size=30),
-            ft.Text("My Events", size=28, weight=ft.FontWeight.BOLD, color=WHITE)
-        ], spacing=15, alignment=ft.MainAxisAlignment.START),
-        margin=ft.margin.only(left=30, top=20)
-    )
-
-    divider_line = ft.Divider(color=WHITE, thickness=2)
-
+    # Hardcoded Events
+    joined_events = [
+        "Podfest Asia 2025 (April 1)",
+        "Iron Fist Tournament (March 29)",
+        "200 Cities Project: Fighting Loneliness (March 20)"
+    ]
+    volunteered_events = [
+        "LUNCH & LEARN: #makersmeetup - [Davao City] (March 29)",
+        "The Corp Comm Crash Course (March 22)",
+        "Sales Workshop: Creating Effective Sales Presentations (March 29)"
+    ]
+    created_events = [
+        "Fortifying Data with AI: A New Era for the Philippines’ Security (April 11)",
+        "Basic PowerBI (April 1)",
+        "Negotiation Skills Workshop (April 1)"
+    ]
+    
     def event_section(title, events, bg_color):
         return ft.Container(
             content=ft.Column([
                 ft.Text(title, size=22, weight=ft.FontWeight.BOLD, color=WHITE, text_align=ft.TextAlign.CENTER),
-                ft.Column(events if events else [ft.Text("No events", color=WHITE, text_align=ft.TextAlign.CENTER)],
+                ft.Column([ft.Text(event, size=16, color=WHITE, weight=ft.FontWeight.BOLD) for event in events],
                           alignment=ft.MainAxisAlignment.CENTER, expand=True),
             ], spacing=10, alignment=ft.MainAxisAlignment.CENTER, expand=True),
             bgcolor=bg_color,
@@ -76,10 +62,21 @@ def load_my_events(page: ft.Page):
         )
 
     events_container = ft.Row([
-        event_section("Past Events", past_events, DARK_RED),
-        event_section("Current Events", current_events, GREEN),
-        event_section("Upcoming Events", upcoming_events, MUSTARD_YELLOW),
+        event_section("Joined Events", joined_events, MUSTARD_YELLOW),
+        event_section("Volunteered Events", volunteered_events, MUSTARD_YELLOW),
+        event_section("My Created Events", created_events, MUSTARD_YELLOW),
     ], spacing=20, alignment=ft.MainAxisAlignment.CENTER, expand=True)
+
+    my_events_header = ft.Row(
+        [
+            ft.Icon(name=ft.icons.CALENDAR_MONTH, color=WHITE, size=30),
+            ft.Text("My Events", size=30, weight=ft.FontWeight.BOLD, color="#faf9f7"),
+        ],
+        alignment=ft.MainAxisAlignment.START,
+        spacing=10
+    )
+
+    divider_line = ft.Divider(color="white", thickness=1)
 
     content_container = ft.Container(
         content=events_container,
@@ -113,21 +110,26 @@ def load_my_events(page: ft.Page):
         )
     ], spacing=10, alignment=ft.MainAxisAlignment.START)
 
-    page.add(
-        taskbar,
-        my_events_header,
-        divider_line,
-        ft.Row([
-            content_container,
-            stats_buttons
-        ], alignment=ft.MainAxisAlignment.START, spacing=10)
+    main_content = ft.Container(
+        content=ft.Column([
+            my_events_header,
+            divider_line,
+            ft.Row([
+                content_container,
+                stats_buttons
+            ], alignment=ft.MainAxisAlignment.START, spacing=10)
+        ], spacing=15, expand=True),
+        margin=ft.margin.only(left=270, top=30, right=40),
+        expand=True
     )
-    page.update()
 
-def go_home(page):
-    import homepg
+    layout = ft.Stack(
+        controls=[sidebar, main_content],
+        expand=True
+    )
+
     page.controls.clear()
-    homepg.main(page)
+    page.add(layout)
     page.update()
 
 def go_event_stats(page):

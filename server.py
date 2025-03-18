@@ -1,11 +1,12 @@
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query , WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, EmailStr
 from pymongo import MongoClient
 import bcrypt
 import re
+import asyncio
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 
 app = FastAPI()
 
@@ -54,9 +55,55 @@ app.add_middleware(
     allow_headers=["*"],  # Allows all headers
 )
 
+# WebSocket connection manager
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections: List[WebSocket] = []
+
+    async def connect(self, websocket: WebSocket):
+        await websocket.accept()
+        self.active_connections.append(websocket)
+
+    def disconnect(self, websocket: WebSocket):
+        self.active_connections.remove(websocket)
+
+    async def broadcast(self, message: str):
+        for connection in self.active_connections:
+            await connection.send_text(message)
+
+manager = ConnectionManager()
+
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    await manager.connect(websocket)
+    try:
+        while True:
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        manager.disconnect(websocket)
+
+# Send notification and broadcast via WebSocket
+def send_notification(username: str, message: str):
+    current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    notification = {"username": username, "message": message, "date": current_time}
+    notifications_collection.insert_one(notification)
+
+    formatted_message = f"{username}: {message}"
+
+    # Ensure WebSocket messages are sent correctly
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+
+    asyncio.run_coroutine_threadsafe(manager.broadcast(formatted_message), loop)
+    print(f"📢 WebSocket Notification Sent: {formatted_message}")  # Debugging print
+
+
 @app.get("/get_user")
 def get_user(username: str):
-    user = users_collection.find_one({"username": username}, {"_id": 0})
+    user = users_collection.find_one({"username": {"$regex": f"^{username}$", "$options": "i"}}, {"_id": 0})
     if user:
         return user
     else:
@@ -71,68 +118,85 @@ def get_regions():
 def search_events(query: str = Query(...), region: str = None):
     """
     Search events by query and optionally by region.
-    - If query is 'All', return all events (or all events for the provided region).
-    - Otherwise, search events where the name or description contains the query (case-insensitive),
-      and if region is provided, also filter by location.
     """
-    print(f"Searching events - Query: '{query}', Region: '{region}'")  # Debugging
+    print(f"🔍 Searching events - Query: '{query}', Region: '{region}'")  # Debugging
 
-    # If the query is "All", ignore text filtering.
-    if query.lower() == "all":
-        if region:
-            # Escape special characters in the region for regex
-            escaped_region = re.escape(region)
-            events = list(events_collection.find(
-                {"location": {"$regex": escaped_region, "$options": "i"}},
-                {"_id": 0}
-            ))
+    try:
+        if query.lower() == "all":
+            if region:
+                escaped_region = re.escape(region)
+                events = list(
+                    events_collection.find(
+                        {"location": {"$regex": escaped_region, "$options": "i"}},
+                        {"_id": 0},
+                    )
+                )
+            else:
+                events = list(events_collection.find({}, {"_id": 0}))
         else:
-            events = list(events_collection.find({}, {"_id": 0}))
-    else:
-        # Build a filter to search in 'name' or 'description'
-        filter_query = {
-            "$or": [
-                {"name": {"$regex": query, "$options": "i"}},
-                {"description": {"$regex": query, "$options": "i"}}
-            ]
-        }
-        if region:
-            # Escape special characters in the region for regex
-            escaped_region = re.escape(region)
-            filter_query["location"] = {"$regex": escaped_region, "$options": "i"}
-        events = list(events_collection.find(filter_query, {"_id": 0}))
+            filter_query = {
+                "$or": [
+                    {"title": {"$regex": query, "$options": "i"}},  # Changed from name to title to match your data
+                    {"description": {"$regex": query, "$options": "i"}},
+                ]
+            }
 
-    # Add event status based on the current date and time
-    for event in events:
+            if region:
+                escaped_region = re.escape(region)
+                filter_query["location"] = {"$regex": escaped_region, "$options": "i"}
 
-        #-----
+            events = list(events_collection.find(filter_query, {"_id": 0}))
 
-        time_value = event["time"]
-        if " - " in time_value:
-            start_time = time_value.split(" - ")[0].strip()
-        else:
-            start_time = time_value.strip()
+        print(f"✅ Found {len(events)} events.")  # Debugging
 
-
-
-        ##-------
-
-
-        event_datetime_str = f"{event['date']} {start_time}"
-        event_datetime = datetime.strptime(event_datetime_str, "%Y-%m-%d %H:%M")
         current_datetime = datetime.now()
 
-        if current_datetime > event_datetime:
-            event["status"] = "Closed"
-        elif current_datetime.date() == event_datetime.date():
-            event["status"] = "Ongoing"
-        else:
-            event["status"] = "Upcoming"
+        for event in events:
+            try:
+                print(f"🔹 Processing event: {event}")  # Log each event before processing
 
-    print(f"Found {len(events)} events.")  # Debugging
-    if not events:
-        raise HTTPException(status_code=404, detail="No events found matching the criteria.")
-    return {"events": events}
+                if "date_time" not in event or event["date_time"] is None:  # Check for missing or None date_time
+                    print("⚠️ Event missing 'date_time' or it's None:", event)
+                    event["status"] = "Unknown" # Set status if date_time is missing or None
+                    continue  # Skip to the next event
+
+                # Parse the date_time string
+                date_time_str = event["date_time"]
+                try:
+                    # Attempt to parse the date_time string
+                    event_datetime = datetime.strptime(date_time_str, "%A, %B %d · %I:%M %p") # Parse your date_time field
+                    # Extract year and replace the datetime object.
+                    year = current_datetime.year
+                    event_datetime = event_datetime.replace(year=year)
+                    print(f"✅ Parsed date_time: {event_datetime}")
+
+                except ValueError as e:
+                    print(f"❌ ValueError: {e} - Could not parse date_time string: {date_time_str}")
+                    event["status"] = "Unknown" # Set status if parsing fails
+                    continue  # Skip to the next event
+                # Assign event status (compare datetime objects)
+                if current_datetime > event_datetime:
+                    event["status"] = "Closed"
+                elif current_datetime.date() == event_datetime.date():
+                    event["status"] = "Ongoing"
+                else:
+                    event["status"] = "Upcoming"
+
+                print(f"✅ Event status: {event.get('status', 'N/A')}")
+
+            except Exception as e:
+                print(f"❌ Error processing event {event.get('title')}: {e}")
+                event["status"] = "Unknown"  # Set a default status in case of error
+
+        if not events:
+            raise HTTPException(status_code=404, detail="No events found matching the criteria.")
+
+        return {"events": events}
+
+    except Exception as e:
+        print(f"🔥 Internal Server Error: {e}")  # Log the error
+        raise HTTPException(status_code=500, detail="Internal Server Error")
+
 
 @app.get("/search_events_by_category")
 def search_events_by_category(category: str):
@@ -142,23 +206,24 @@ def search_events_by_category(category: str):
         {"_id": 0}
     ))
 
-    # Add event status based on the current date and time
+    current_datetime = datetime.now()
+
     for event in events:
+        time_value = event["time"].strip()  # Remove extra spaces
+    
+        # Extract only the start time (before " - ") if a range exists
+        start_time = time_value.split(" - ")[0]  
 
-        #-------
-        time_value = event["time"]
-        if " - " in time_value:
-            start_time = time_value.split(" - ",1)[0].strip()
-
-        else:
-            start_time = time_value.strip()
-
-        #-------
-
+        # Construct a clean datetime string
         event_datetime_str = f"{event['date']} {start_time}"
-        event_datetime = datetime.strptime(event_datetime_str, "%Y-%m-%d %H:%M")
-        current_datetime = datetime.now()
 
+        # Debugging print to verify the extracted datetime string
+        print(f"✅ Cleaned event_datetime_str: {event_datetime_str}")
+
+        # Convert string to datetime
+        event_datetime = datetime.strptime(event_datetime_str, "%Y-%m-%d %H:%M")
+
+        # Assign event status
         if current_datetime > event_datetime:
             event["status"] = "Closed"
         elif current_datetime.date() == event_datetime.date():
@@ -169,6 +234,7 @@ def search_events_by_category(category: str):
     if not events:
         raise HTTPException(status_code=404, detail="No events found for this category.")
     return {"events": events}
+
 
 @app.get("/display_events")
 def display_events():
@@ -196,7 +262,7 @@ class UserRegister(BaseModel):
     username: str
     email: EmailStr
     contact: str
-    password: str
+    password: str   
     gender: Optional[str] = "N/A"
 
 class UserLogin(BaseModel):
@@ -223,38 +289,15 @@ def login(user: UserLogin):
 def register(user: UserRegister):
     username_exists = users_collection.find_one({"username": user.username})
     email_exists = users_collection.find_one({"email": user.email})
-
-    if username_exists and email_exists:
-        raise HTTPException(status_code=400, detail="Username and Email already exist")
-    elif username_exists:
-        raise HTTPException(status_code=400, detail="Username already exists")
-    elif email_exists:
-        raise HTTPException(status_code=400, detail="Email already exists")
-
-    # Delete existing notifications for the username
-    notifications_collection.delete_many({"username": user.username})
-
-    hashed_password = bcrypt.hashpw(user.password.encode(), bcrypt.gensalt())
-    user_data = {
-        "username": user.username,
-        "email": user.email,
-        "contact": user.contact,
-        "password": hashed_password.decode(),
-        "gender": user.gender,
-        "date_joined": datetime.now().strftime("%Y-%m-%d"),
-        "description": "Describe Yourself!"
-    }
+    
+    if username_exists or email_exists:
+        raise HTTPException(status_code=400, detail="Username or Email already exists")
+    
+    hashed_password = bcrypt.hashpw(user.password.encode(), bcrypt.gensalt()).decode()
+    user_data = {"username": user.username, "email": user.email, "password": hashed_password}
     users_collection.insert_one(user_data)
     
-    # Create a welcome notification with date and time
-    current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    welcome_notification = {
-        "username": user.username,
-        "message": f"Welcome to EventLink! Thank you for signing up.\n------------------------\n{current_time}",
-        "date": current_time
-    }
-    notifications_collection.insert_one(welcome_notification)
-
+    send_notification(user.username, "Welcome to EventLink! Thank you for signing up.")
     return {"message": "Registration successful"}
 
 @app.get("/all_events")
@@ -287,24 +330,39 @@ def get_my_events(username: str):
 
     # Add event status based on the current date and time
     for event in events:
-        event_datetime_str = f"{event['date']} {event['time']}"
-        event_datetime = datetime.strptime(event_datetime_str, "%Y-%m-%d %H:%M")
-        current_datetime = datetime.now()
+        try:
+            # Extract the start time from the time range (e.g., "18:00 - 22:00" -> "18:00")
+            start_time = event["time"].split(" - ")[0].strip()
 
-        if current_datetime > event_datetime:
-            event["status"] = "Closed"
-        elif current_datetime.date() == event_datetime.date():
-            event["status"] = "Ongoing"
-        else:
-            event["status"] = "Upcoming"
+            # Construct a clean datetime string
+            event_datetime_str = f"{event['date']} {start_time}"
 
-        # Retrieve joined date for the current user from participants
-        for participant in event.get("participants", []):
-            if isinstance(participant, dict) and participant.get("username") == username:
-                event["joined"] = participant.get("joined")
-                break
-        else:
-            event["joined"] = "N/A"
+            # Debugging print to verify the extracted datetime string
+            print(f"✅ Cleaned event_datetime_str: {event_datetime_str}")
+
+            # Convert string to datetime
+            event_datetime = datetime.strptime(event_datetime_str, "%Y-%m-%d %H:%M")
+
+            # Assign event status
+            current_datetime = datetime.now()
+            if current_datetime > event_datetime:
+                event["status"] = "Closed"
+            elif current_datetime.date() == event_datetime.date():
+                event["status"] = "Ongoing"
+            else:
+                event["status"] = "Upcoming"
+
+            # Retrieve joined date for the current user from participants
+            for participant in event.get("participants", []):
+                if isinstance(participant, dict) and participant.get("username") == username:
+                    event["joined"] = participant.get("joined")
+                    break
+            else:
+                event["joined"] = "N/A"
+
+        except Exception as e:
+            print(f"❌ Error processing event {event.get('name')}: {e}")
+            event["status"] = "Unknown"  # Fallback status if parsing fails
 
     if not events:
         raise HTTPException(404, "No joined events found")
@@ -374,14 +432,14 @@ class Event(BaseModel):
     created_at: str
 
 @app.post("/create_event")
-def create_event(event: Event):
-    try:
-        event_data = event.dict()
-        event_data["created_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        events_collection.insert_one(event_data)
-        return {"message": "Event created successfully"}
-    except Exception as ex:
-        raise HTTPException(status_code=500, detail=f"Error creating event: {ex}")
+def create_event(event: BaseModel):
+    event_data = event.dict()
+    event_data["created_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    events_collection.insert_one(event_data)
+    
+    send_notification(event.host, f"Your event '{event.name}' has been created!")
+    return {"message": "Event created successfully"}
+
 
 from pydantic import BaseModel
 
@@ -394,26 +452,15 @@ def join_event(request: JoinEventRequest):
     event = events_collection.find_one({"name": request.event_name})
     if not event:
         raise HTTPException(status_code=404, detail="Event not found.")
-
-    participants = event.get("participants", [])
-    if any(isinstance(p, dict) and p.get("username") == request.username for p in participants):
-        raise HTTPException(status_code=400, detail="User already joined this event.")
-
-    current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    
     events_collection.update_one(
         {"name": request.event_name},
-        {"$push": {"participants": {"username": request.username, "joined": current_time}}}
+        {"$push": {"participants": request.username}}
     )
-
-    notification = {
-        "username": request.username,
-        "message": f"You have joined the event: {request.event_name}\n------------------------\n{current_time}",
-        "date": current_time
-    }
-    notifications_collection.insert_one(notification)
-    print(f"Notification created: {notification}")  # Debug print
-
+    
+    send_notification(request.username, f"You have joined the event '{request.event_name}'!")
     return {"message": "Event joined successfully"}
+
 
 if __name__ == "__main__":
     import uvicorn

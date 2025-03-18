@@ -1,13 +1,14 @@
 import flet as ft
-import pymongo
 import matplotlib.pyplot as plt
 import io
 import base64
+import random
+import pymongo
 from datetime import datetime
-from header import load_header  # Import the header function
+from controller.sidebar_controller import SidebarController
 
 # Define theme colors
-BACKGROUND_COLOR = "#c69c5d"
+BACKGROUND_COLOR = "#d6aa54"
 DARK_RED = "#d9534f"
 GREEN = "#5cb85c"
 MUSTARD_YELLOW = "#f0ad4e"
@@ -22,26 +23,13 @@ db = client["EventLink"]
 collection = db["events"]
 
 def fetch_available_years():
-    years = collection.distinct("date")
-    years = sorted(set(date[:4] for date in years if len(date) >= 4), reverse=True)
-    return years
+    current_year = datetime.now().year
+    years = [str(year) for year in range(current_year - 5, current_year + 1)]
+    return sorted(years, reverse=True)
 
 def fetch_event_data(selected_year):
-    pipeline = [
-        {"$addFields": {
-            "event_year": {"$substr": ["$date", 0, 4]},
-            "event_month": {"$substr": ["$date", 5, 2]}
-        }},
-        {"$match": {"event_year": str(selected_year)}},
-        {"$group": {
-            "_id": "$event_month",
-            "total_participants": {"$sum": "$participants"}
-        }},
-        {"$sort": {"_id": 1}}
-    ]
-    data = list(collection.aggregate(pipeline))
-    months = [item["_id"] for item in data]
-    participants = [item["total_participants"] for item in data]
+    months = [f"{i:02}" for i in range(1, 13)]
+    participants = [random.randint(50, 500) for _ in range(12)]
     return months, participants
 
 def main(page: ft.Page):
@@ -49,15 +37,23 @@ def main(page: ft.Page):
     page.bgcolor = BACKGROUND_COLOR
     page.padding = 0
 
-    taskbar = load_header(page)  # Load the header
+    # Load Sidebar
+    if "sidebar" not in page.data:
+        sidebar_controller = SidebarController(page)
+        sidebar = sidebar_controller.build()
+        page.data["sidebar"] = sidebar
+    else:
+        sidebar = page.data["sidebar"]
 
     volunteer_stats_header = ft.Container(
         content=ft.Row([
             ft.Icon(ft.icons.INSIGHTS, color=WHITE, size=30),
             ft.Text("Volunteer Stats", size=28, weight=ft.FontWeight.BOLD, color=WHITE)
         ], spacing=15, alignment=ft.MainAxisAlignment.START),
-        margin=ft.padding.only(left=30, top=20)
+        margin=ft.margin.only(left=30, top=40)
     )
+
+    divider_line = ft.Divider(color=WHITE, thickness=2)
 
     available_years = fetch_available_years()
     selected_year = available_years[0] if available_years else str(datetime.now().year)
@@ -76,8 +72,8 @@ def main(page: ft.Page):
         padding=20,
         border_radius=15,
         alignment=ft.alignment.center,
-        width=400,  # Centered and fitted width
-        height=320   # Centered and fitted height
+        width=600,
+        height=400
     )
 
     stats_button = ft.Container(
@@ -94,17 +90,24 @@ def main(page: ft.Page):
         margin=ft.margin.only(top=20)
     )
 
-    page.add(
-        taskbar,
-        volunteer_stats_header,
-        ft.Divider(color=WHITE, thickness=2),
-        ft.Column([
-            ft.Row([
-                ft.Container(content=graph_section, alignment=ft.alignment.center)
-            ], alignment=ft.MainAxisAlignment.CENTER),
+    main_content = ft.Container(
+        content=ft.Column([
+            volunteer_stats_header,
+            divider_line,
+            ft.Row([graph_section], alignment=ft.MainAxisAlignment.CENTER),
             stats_button
-        ], alignment=ft.MainAxisAlignment.CENTER, spacing=20)
+        ], alignment=ft.MainAxisAlignment.CENTER, spacing=20),
+        margin=ft.margin.only(left=270, top=30, right=40),
+        expand=True
     )
+
+    layout = ft.Stack(
+        controls=[sidebar, main_content],
+        expand=True
+    )
+
+    page.controls.clear()
+    page.add(layout)
     page.update()
 
 def go_my_events(page):

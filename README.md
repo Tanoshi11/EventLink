@@ -88,6 +88,7 @@ pip install pymongo
 pip install bcrypt
 pip install httpx
 pip install pydantic[email]
+pip install matplotlib
 ```
 
 ## 6. Run the FastAPI Server
@@ -105,7 +106,7 @@ This starts the FastAPI server (typically at http://127.0.0.1:8000).
 In another terminal window or tab (with the virtual environment activated), navigate to your project folder and run:
 
 ```bash
-python3 login.py
+python3 main.py
 ```
 
 This will launch the login page of the application.

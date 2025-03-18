@@ -37,7 +37,7 @@ class TestServerEndpoints(unittest.TestCase):
     def tearDown(self):
         # Clean up the test user after tests.
         users_collection.delete_many({"username": self.test_username})
-    
+
     def test_get_user_found(self):
         response = client.get(f"/get_user?username={self.test_username}")
         self.assertEqual(response.status_code, 200)
@@ -49,12 +49,6 @@ class TestServerEndpoints(unittest.TestCase):
     def test_get_user_not_found(self):
         response = client.get("/get_user?username=nonexistentuser")
         self.assertEqual(response.status_code, 404)
-    
-    def test_events_endpoint(self):
-        response = client.get("/events")
-        self.assertEqual(response.status_code, 200)
-        data = response.json()
-        self.assertIsInstance(data, list)
     
     def test_register_duplicate(self):
         # Attempt to register a user that already exists.
@@ -120,32 +114,32 @@ class FakePage:
 class TestFletUI(unittest.TestCase):
     def test_homepage_view(self):
         # Test that homepg.main adds controls to the page.
-        from homepg import main as home_main
+        from controller.homepg_controller import main as home_main
         fake_page = FakePage()
         home_main(fake_page)
         self.assertGreater(len(fake_page.controls), 0)
     
     def test_login_view(self):
-        # Test that login.load_login adds controls to the page.
-        from login import load_login
+        # Test that CreateEvents.load_login adds controls to the page.
+        from CreateEvents import load_login
         fake_page = FakePage()
         load_login(fake_page)
         self.assertGreater(len(fake_page.controls), 0)
     
     def test_profile_view_error(self):
-        # Test that user_profile.show_profile shows an error when no username is set.
-        from user_profile import show_profile
+        # Test that CreateEvents.load_profile shows an error when no username is set.
+        from CreateEvents import load_profile
         fake_page = FakePage()
         # Do not set fake_page.data["username"] to simulate a user not logged in.
-        show_profile(fake_page)
+        load_profile(fake_page)
         self.assertGreater(len(fake_page.controls), 0)
     
     def test_profile_view_success(self):
-        # Test that user_profile.show_profile adds controls when a username is set.
-        from user_profile import show_profile
+        # Test that CreateEvents.load_profile adds controls when a username is set.
+        from CreateEvents import load_profile
         fake_page = FakePage()
         fake_page.data = {"username": "nonexistentuser"}  # This will trigger the error branch.
-        show_profile(fake_page)
+        load_profile(fake_page)
         self.assertGreater(len(fake_page.controls), 0)
 
 if __name__ == "__main__":

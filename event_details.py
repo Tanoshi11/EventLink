@@ -1,10 +1,12 @@
 import flet as ft
 import httpx
 from datetime import datetime
-from search import load_search
+from controller.search_controller import load_search
 from header import load_header
-import join_event_form  # Import the join_event_form module
-
+from view.sidebar_view import SidebarView  # Import SidebarView
+from controller.sidebar_controller import SidebarController  # Import SidebarController
+from utils import clear_overlay
+from controller.join_event_form_controller import JoinEventController
 def load_event_details(page: ft.Page, event: dict, search_context: dict):
     if page.data is None:
         page.data = {}
@@ -15,206 +17,145 @@ def load_event_details(page: ft.Page, event: dict, search_context: dict):
     taskbar = load_header(page)
 
     # ----------------- Sidebar (Categories) -----------------
-    def handle_category_click(e, category_label: str):
-        load_search(page, query=category_label, search_type="category")
-
-    def category_row(icon_name: str, label: str):
-        """Create a clickable category row."""
-        return ft.Container(
-            content=ft.Row(
-                controls=[
-                    ft.Icon(name=icon_name, color="white", size=20),
-                    ft.Text(label, color="white", size=16),
-                ],
-                spacing=10,
-                alignment=ft.MainAxisAlignment.START
-            ),
-            padding=ft.padding.all(5),
-            on_click=lambda e: handle_category_click(e, label),
-            ink=True,
-            border_radius=ft.border_radius.all(5)
-        )
-
-    category_buttons = ft.Column(
-        controls=[
-            ft.Text("Filters", color="white", size=20, weight=ft.FontWeight.BOLD),
-            ft.Text("Category", color="white", size=16, weight=ft.FontWeight.W_600),
-            category_row(ft.Icons.BRUSH, "Arts"),
-            category_row(ft.Icons.BUSINESS_CENTER, "Business"),
-            category_row(ft.Icons.FAVORITE, "Charity"),
-            category_row(ft.Icons.LOCAL_LIBRARY, "Community"),
-            category_row(ft.Icons.SCHOOL, "Education"),
-            category_row(ft.Icons.THEATER_COMEDY, "Entertainment"),
-            category_row(ft.Icons.ECO, "Environment"),
-            category_row(ft.Icons.RESTAURANT, "Food"),
-            category_row(ft.Icons.GAMES, "Gaming"),
-            category_row(ft.Icons.HEALTH_AND_SAFETY, "Health"),
-            category_row(ft.Icons.MUSIC_NOTE, "Music"),
-            category_row(ft.Icons.GAVEL, "Politics"),
-            category_row(ft.Icons.SPORTS_SOCCER, "Sports"),
-            category_row(ft.Icons.DEVICES, "Technology"),
-            category_row(ft.Icons.FLIGHT, "Travel"),
-        ],
-        spacing=12,
-        alignment=ft.MainAxisAlignment.START
-    )
-
-    side_taskbar = ft.Container(
-        content=category_buttons,
-        width=245,
-        bgcolor="#1d572c",
-        alignment=ft.alignment.top_left,
-        padding=20,
-        margin=ft.margin.only(top=100)
-    )
+    sidebar_controller = SidebarController(page)  # ✅ Pass the page correctly
+    sidebar = SidebarView(controller=sidebar_controller)  # Initialize SidebarView with the controller
+    sidebar_content = sidebar.build(page)  # Build the sidebar content
 
     # ----------------- Event Details Content -----------------
+    event_title_text = event.get("title", "Unnamed Event")
+    event_date = event.get("date_time", "N/A")
+    event_time = event.get("time", "N/A")
+    date_time = event.get("date_time", "N/A")
+    event_venue = event.get("venue", "N/A")
+    event_description_text = event.get("description", "No description available.")
+
+    # Determine event status
+    event_status_text = "Unknown"
+    status_color = "white"
+    if event_date and event_time:
+        try:
+            event_datetime_str = f"{event_date} {event_time}"
+            event_datetime = datetime.strptime(event_datetime_str, "%Y-%m-%d %I:%M %p")
+            now = datetime.now()
+
+            if event_datetime < now:
+                event_status_text = "Closed"
+                status_color = "#FF5252"
+            elif event_datetime.date() == now.date():
+                event_status_text = "Ongoing"
+                status_color = "#FFEB3B"
+            else:
+                event_status_text = "Upcoming"
+                status_color = "#4CAF50"
+        except ValueError as e:
+            print(f"Error parsing date or time: {e}")
+            event_status_text = "Invalid Date/Time"
+    
     event_title = ft.Text(
-        event.get("name", "Unnamed Event"),
+        event_title_text,
         size=30,
         weight=ft.FontWeight.BOLD,
         color="white",
-        text_align=ft.TextAlign.LEFT
+        text_align=ft.TextAlign.LEFT,
     )
 
     title_divider = ft.Divider(color="white", thickness=1)
+
     event_image = ft.Image(
-        src=event.get("image_url", "default_event_image.jpg"),
+        src=event.get("image", "default_event_image.jpg"),
         width=300,
         height=200,
         fit=ft.ImageFit.COVER,
-        border_radius=20
+        border_radius=20,
     )
 
-    def get_event_status(event_date, event_time):
-        """Determine the status of the event based on the current date and time."""
-        try:
-        # --- CHANGED: Check if event_time contains a range separator (" - ") ---
-            if " - " in event_time:
-                # --- CHANGED: Extract only the start time and strip extra spaces ---
-                start_time = event_time.split(" - ")[0].strip()
-            else:
-                start_time = event_time.strip()
-            
-        # --- CHANGED: Use only the start time to build the datetime string ---
-            event_datetime_str = f"{event_date} {start_time}"
-            event_datetime = datetime.strptime(event_datetime_str, "%Y-%m-%d %H:%M")
-            current_datetime = datetime.now()
-            if current_datetime > event_datetime:
-                return "Closed"
-            elif current_datetime.date() == event_datetime.date():
-                return "Ongoing"
-            else:
-                return "Upcoming"
-        except Exception as ex:
-            print(f"Error in get_event_status: {ex}")
-            return "Unknown"
-
-    event_status = get_event_status(event.get("date", ""), event.get("time", ""))
-    status_color = {
-        "Upcoming": "#4CAF50",
-        "Ongoing": "#FFEB3B",
-        "Closed": "#FF5252"
-    }.get(event_status, "white")
-
-    
     event_details = ft.Column(
         controls=[
-            ft.Text(f'Host: {event.get("username", "Unknown")}', size=20, color="white"),
-            ft.Text(f"Date: {event.get('date', 'N/A')}", size=20, color="white"),
-            ft.Text(f"Time: {event.get('time', 'N/A')}", size=20, color="white"),
-            ft.Text(f"Location: {event.get('location', 'N/A')}", size=20, color="white"),
+            ft.Row(
+                controls=[
+                    ft.Text("Date & Time:", size=20, weight=ft.FontWeight.BOLD, color="white"),
+                    ft.Text(date_time, size=20, color="white"),
+                ],
+                spacing=5,
+            ),
+            ft.Row(
+                controls=[
+                    ft.Text("Venue:", size=20, weight=ft.FontWeight.BOLD, color="white"),
+                    ft.Text(event_venue, size=20, color="white"),
+                ],
+                spacing=5,
+            ),
         ],
         spacing=10,
-        alignment=ft.MainAxisAlignment.START
+        alignment=ft.MainAxisAlignment.START,
     )
+
 
     image_details_row = ft.Row(
         controls=[event_image, event_details],
         spacing=20,
-        alignment=ft.MainAxisAlignment.START
+        alignment=ft.MainAxisAlignment.START,
     )
 
     event_description = ft.Column(
         controls=[
             ft.Text("Description:", size=20, weight=ft.FontWeight.BOLD, color="white"),
             ft.Text(
-                event.get("description", "No description available."),
+                event_description_text,
                 size=18,
                 color="white",
-                text_align=ft.TextAlign.LEFT
-            )
+                text_align=ft.TextAlign.LEFT,
+            ),
         ],
         spacing=5,
-        alignment=ft.MainAxisAlignment.START
+        alignment=ft.MainAxisAlignment.START,
     )
+
 
     def join_event(e):
         """Open the join event form."""
-        print("Adding overlay...")  # Debug statement
-        # Calculate the dimensions of the area we want to blur
-        main_content_left_margin = 290
-        main_content_top_margin = 140
-        main_content_right_margin = 40
-        # Increased width and height to cover the entire yellowish background
-        width_increase = 90  # Adjust this value as needed
-        height_increase = 100  # Adjust this value as needed
-        main_content_width = (
-            page.window_width if hasattr(page, "window_width") else page.width if page.width else 1000
-        ) - main_content_left_margin - main_content_right_margin + width_increase
-        main_content_height = page.height * 0.8 + height_increase
+        print("🔍 Opening join event form...")  # Debugging
 
-        # Apply the blur effect to the main_content area
+        # Ensure overlay isn't duplicated
         blur_overlay = ft.Container(
             bgcolor=ft.colors.with_opacity(0.5, ft.colors.BLACK),
-            width=main_content_width,
-            height=main_content_height,
-            top=main_content_top_margin - (height_increase / 2) + 10,  # Position from the top - adjust for increase AND shift down
-            left=main_content_left_margin - (width_increase / 2),  # Position from the left - adjust for increase
-            content=ft.GestureDetector(on_tap=lambda _: None) #Add gesture detector here!!
+            expand=True
         )
-
-        # Add the overlay to the page overlay so that the header and side taskbar will still be clickable
         page.overlay.append(blur_overlay)
-        page.update()
 
-        # Load the join event form
-        join_event_form.load_join_event_form(
+        # ✅ Correct way to open the Join Event form
+        join_controller = JoinEventController(
             page,
-            title=event.get("name", "Unnamed Event"),
+            event_id=event.get("id", "N/A"),
+            title=event.get("title", "Unnamed Event"),
             date=event.get("date", "N/A"),
             time=event.get("time", "N/A"),
             available_slots=event.get("guest_limit", "N/A"),
-            event_id=event.get("id", "N/A"),
-            back_callback=close_popup,  # Close the popup without refreshing the page
             join_callback=update_join_button
         )
+        join_controller.show_form()  # ✅ This properly displays the form
+
+        page.update()
+
 
     def close_popup(page_instance=None):
-        """Close the join event form and remove blur."""
-        # Remove the blur effect by removing the overlay from the page overlay
         if page.overlay:
             for control in page.overlay:
                 if isinstance(control, ft.Container) and control.bgcolor == ft.colors.with_opacity(
                     0.5, ft.colors.BLACK
                 ):
                     page.overlay.remove(control)
-                    break  # Remove only the first matching overlay
-
-        # Remove the join event form popup
-        join_event_form.close_join_popup(page)
-
+                    break
+        JoinEventController.close_join_popup(page)
         page.update()
 
     def update_join_button():
-        # Remove the join button and replace it with a text element
         buttons_row.controls.remove(join_event_button)
         joined_text = ft.Text("Joined Event", size=15, color="white", weight="bold")
         buttons_row.controls.insert(0, joined_text)
-        page.data["joined_event"] = True  # Mark the event as joined in page data
+        page.data["joined_event"] = True
         page.update()
 
-    # Determine if the user has already joined the event
     username = page.data.get("username")
     response = httpx.get(f"http://localhost:8000/my_events?username={username}")
     if response.status_code == 200:
@@ -246,33 +187,32 @@ def load_event_details(page: ft.Page, event: dict, search_context: dict):
         style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=10))
     )
 
-    back_to_home_button = ft.ElevatedButton(
-        text="Back to Home",
-        on_click=lambda e: go_back_to_homepage(page),
-        bgcolor="#C77000",
-        color="white",
-        style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=10))
-    )
+    # back_to_home_button = ft.ElevatedButton(
+    #     text="Back to Home",
+    #     on_click=lambda e: go_back_to_homepage(page),
+    #     bgcolor="#C77000",
+    #     color="white",
+    #     style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=10))
+    # )
 
-    container_color = "#21582F"  # Taskbar green color
+    container_color = "#21582F"
     button_color = "#C77000"
     buttons_row = ft.Row(
         controls=[
             back_to_search_button,
-            back_to_home_button
+            # back_to_home_button
         ],
         spacing=20,
         alignment=ft.MainAxisAlignment.END
     )
 
-    if event_status != "Closed":
+    if event_status_text != "Closed":
         buttons_row.controls.insert(0, join_event_button)
 
     event_container = ft.Container(
         content=ft.Column(
             [
-                ft.Text(event.get("name", "Unnamed Event"), size=24, weight="bold", color="white"),
-                ft.Text(f"Status: {event_status}", color=status_color, size=20, weight=ft.FontWeight.BOLD),
+                ft.Text(event.get("title", "Unnamed Event"), size=24, weight="bold", color="white"),
                 ft.Divider(color="white"),
                 image_details_row,
                 ft.Divider(color="white"),
@@ -283,13 +223,13 @@ def load_event_details(page: ft.Page, event: dict, search_context: dict):
                 )
             ],
             spacing=10,
-            scroll=ft.ScrollMode.AUTO  # Make the column scrollable if content overflows
+            scroll=ft.ScrollMode.AUTO
         ),
         bgcolor=container_color,
         padding=20,
         border_radius=10,
         expand=True,
-        height=page.height * 0.8  # Limit the height to 80% of the page height
+        height=page.height * 0.8
     )
 
     main_content = ft.Container(
@@ -302,20 +242,13 @@ def load_event_details(page: ft.Page, event: dict, search_context: dict):
         controls=[
             main_content,
             taskbar,
-            side_taskbar,
+            sidebar_content,  # Use the sidebar content here
         ],
         expand=True
     )
 
     page.add(main_stack)
     page.update()
-
-
-def clear_overlay(page: ft.Page):
-    """Clear the overlay (e.g., join event form) from the page."""
-    if page.overlay:
-        page.overlay.clear()
-        page.update()
 
 def go_back_to_search(page: ft.Page):
     """Go back to the search page and clear the overlay."""
@@ -324,11 +257,11 @@ def go_back_to_search(page: ft.Page):
     query = search_context.get("query", "All")
     search_type = search_context.get("search_type", "global")
     location = search_context.get("location", None)
-    import search
+    import controller.search_controller as search
     search.load_search(page, query=query, search_type=search_type, location=location)
 
-def go_back_to_homepage(page: ft.Page):
-    """Go back to the homepage and clear the overlay."""
-    clear_overlay(page)  # Clear the overlay before navigating
-    import homepg
-    homepg.load_homepage(page)
+# def go_back_to_homepage(page: ft.Page):
+#     """Go back to the homepage and clear the overlay."""
+#     clear_overlay(page)  # Clear the overlay before navigating
+#     import controller.homepg_controller as homepg
+#     homepg.load_homepage(page)
