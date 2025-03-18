@@ -1,8 +1,9 @@
-import flet as ft
-import pymongo
+import flet as ft 
 import matplotlib.pyplot as plt
 import io
 import base64
+import random
+import pymongo
 from datetime import datetime
 from controller.sidebar_controller import SidebarController
 
@@ -22,36 +23,35 @@ db = client["EventLink"]
 collection = db["events"]
 
 def fetch_available_years():
-    years = collection.distinct("date")
-    years = sorted(set(date[:4] for date in years if len(date) >= 4), reverse=True)
-    return years
+    current_year = datetime.now().year
+    years = [str(year) for year in range(current_year - 5, current_year + 1)]
+    return sorted(years, reverse=True)
 
 def fetch_event_data(selected_year):
-    pipeline = [
-        {"$addFields": {
-            "event_year": {"$substr": ["$date", 0, 4]},
-            "event_month": {"$substr": ["$date", 5, 2]}
-        }},
-        {"$match": {"event_year": str(selected_year)}},
-        {"$group": {
-            "_id": "$event_month",
-            "total_participants": {"$sum": "$participants"},
-            "total_events": {"$sum": 1}
-        }},
-        {"$sort": {"_id": 1}}
-    ]
-    data = list(collection.aggregate(pipeline))
-    months = [item["_id"] for item in data]
-    participants = [item["total_participants"] for item in data]
-    events = [item["total_events"] for item in data]
-    return months, participants, events
+    months = [f"{i:02}" for i in range(1, 13)]
+    event_counts = [random.randint(5, 50) for _ in range(12)]
+    return months, event_counts
+
+def create_chart(months, data, title):
+    fig, ax = plt.subplots()
+    month_labels = [datetime(2000, int(m), 1).strftime('%b') for m in months]
+    ax.bar(month_labels, data, color=DARK_RED)
+    
+    ax.set_xlabel("Month")
+    ax.set_ylabel("Number of Events")
+    ax.set_title(title)
+    ax.grid(axis='y', linestyle='--', alpha=0.7)
+    
+    img_buffer = io.BytesIO()
+    fig.savefig(img_buffer, format="png", bbox_inches="tight", facecolor=CHART_BG_COLOR)
+    img_buffer.seek(0)
+    return base64.b64encode(img_buffer.getvalue()).decode("utf-8")
 
 def main(page: ft.Page):
     page.title = "Event Stats"
     page.bgcolor = BACKGROUND_COLOR
     page.padding = 0
 
-    # Load Sidebar
     if "sidebar" not in page.data:
         sidebar_controller = SidebarController(page)
         sidebar = sidebar_controller.build()
@@ -59,41 +59,25 @@ def main(page: ft.Page):
     else:
         sidebar = page.data["sidebar"]
 
-
     event_stats_header = ft.Container(
         content=ft.Row([
             ft.Icon(ft.icons.INSIGHTS, color=WHITE, size=30),
             ft.Text("Event Stats", size=28, weight=ft.FontWeight.BOLD, color=WHITE)
         ], spacing=15, alignment=ft.MainAxisAlignment.START),
-        margin=ft.margin.only(left=30, top=40)
+        margin=ft.margin.only(left=30, top=20)
     )
 
     divider_line = ft.Divider(color=WHITE, thickness=2)
-
     available_years = fetch_available_years()
     selected_year = available_years[0] if available_years else str(datetime.now().year)
-
-    months, participants, events = fetch_event_data(selected_year)
-    participants_chart = create_chart(months, participants, "Monthly Event Participation")
-    events_chart = create_chart(months, events, "Monthly Events Creation")
-
-    participants_img = ft.Image(src_base64=participants_chart, width=400, height=300)
+    months, events = fetch_event_data(selected_year)
+    events_chart = create_chart(months, events, "Number of Events Per Month")
     events_img = ft.Image(src_base64=events_chart, width=400, height=300)
 
     graph_section = ft.Row([
         ft.Container(
             content=ft.Column([
-                ft.Text("Monthly Event Participation", size=20, weight="bold", color=DARK_TEXT, text_align=ft.TextAlign.CENTER),
-                participants_img
-            ], alignment=ft.MainAxisAlignment.CENTER, horizontal_alignment=ft.CrossAxisAlignment.CENTER),
-            bgcolor=CHART_BG_COLOR,
-            padding=20,
-            border_radius=15,
-            alignment=ft.alignment.center
-        ),
-        ft.Container(
-            content=ft.Column([
-                ft.Text("Monthly Events Creation", size=20, weight="bold", color=DARK_TEXT, text_align=ft.TextAlign.CENTER),
+                ft.Text("Number of Events Per Month", size=20, weight="bold", color=DARK_TEXT, text_align=ft.TextAlign.CENTER),
                 events_img
             ], alignment=ft.MainAxisAlignment.CENTER, horizontal_alignment=ft.CrossAxisAlignment.CENTER),
             bgcolor=CHART_BG_COLOR,
@@ -142,20 +126,6 @@ def go_my_events(page):
     page.controls.clear()
     my_events.load_my_events(page)
     page.update()
-
-def create_chart(months, data, title):
-    fig, ax = plt.subplots()
-    ax.plot(months, data, marker="o", linestyle="-", color=DARK_RED, label=title)
-    ax.set_xticks(range(1, 13))
-    ax.set_xticklabels([f"{i:02}" for i in range(1, 13)])
-    ax.set_xlabel("Month")
-    ax.set_ylabel("Count")
-    ax.set_title(title)
-    ax.grid(True)
-    img_buffer = io.BytesIO()
-    fig.savefig(img_buffer, format="png", bbox_inches="tight", facecolor=CHART_BG_COLOR)
-    img_buffer.seek(0)
-    return base64.b64encode(img_buffer.getvalue()).decode("utf-8")
 
 if __name__ == "__main__":
     ft.app(target=main)
