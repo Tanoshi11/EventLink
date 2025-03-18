@@ -17,17 +17,8 @@ client = pymongo.MongoClient(MONGO_URI)
 db = client["EventLink"]
 collection = db["events"]
 
-def fetch_events():
-    """Fetch events from MongoDB."""
-    try:
-        events = list(collection.find({}, {"_id": 0, "name": 1, "date": 1}))
-        return events
-    except Exception as ex:
-        print("Error fetching events:", ex)
-        return []
-
 def load_my_events(page: ft.Page):
-    """Load the My Events page."""
+    """Load the My Events page with hardcoded event data."""
     page.title = "My Events"
     page.bgcolor = BACKGROUND_COLOR
     page.padding = 0  
@@ -40,24 +31,41 @@ def load_my_events(page: ft.Page):
     else:
         sidebar = page.data["sidebar"]
 
-
-    # Fetch Events
-    events = fetch_events()
-    current_date = datetime.now().date()
+    # Hardcoded Events
+    joined_events = [
+        "Podfest Asia 2025 (April 1)",
+        "Iron Fist Tournament (March 29)",
+        "200 Cities Project: Fighting Loneliness (March 20)"
+    ]
+    volunteered_events = [
+        "LUNCH & LEARN: #makersmeetup - [Davao City] (March 29)",
+        "The Corp Comm Crash Course (March 22)",
+        "Sales Workshop: Creating Effective Sales Presentations (March 29)"
+    ]
+    created_events = [
+        "Fortifying Data with AI: A New Era for the Philippines’ Security (April 11)",
+        "Basic PowerBI (April 1)",
+        "Negotiation Skills Workshop (April 1)"
+    ]
     
-    past_events, current_events, upcoming_events = [], [], []
-    for event in events:
-        try:
-            event_date = datetime.strptime(event["date"], "%Y-%m-%d").date()
-            event_text = ft.Text(event['name'], size=16, color=WHITE, weight=ft.FontWeight.BOLD)
-            if event_date < current_date:
-                past_events.append(event_text)
-            elif event_date == current_date:
-                current_events.append(event_text)
-            else:
-                upcoming_events.append(event_text)
-        except Exception as e:
-            print(f"Error parsing event date: {e}")
+    def event_section(title, events, bg_color):
+        return ft.Container(
+            content=ft.Column([
+                ft.Text(title, size=22, weight=ft.FontWeight.BOLD, color=WHITE, text_align=ft.TextAlign.CENTER),
+                ft.Column([ft.Text(event, size=16, color=WHITE, weight=ft.FontWeight.BOLD) for event in events],
+                          alignment=ft.MainAxisAlignment.CENTER, expand=True),
+            ], spacing=10, alignment=ft.MainAxisAlignment.CENTER, expand=True),
+            bgcolor=bg_color,
+            border_radius=15,
+            padding=20,
+            expand=True
+        )
+
+    events_container = ft.Row([
+        event_section("Joined Events", joined_events, MUSTARD_YELLOW),
+        event_section("Volunteered Events", volunteered_events, MUSTARD_YELLOW),
+        event_section("My Created Events", created_events, MUSTARD_YELLOW),
+    ], spacing=20, alignment=ft.MainAxisAlignment.CENTER, expand=True)
 
     my_events_header = ft.Row(
         [
@@ -69,25 +77,6 @@ def load_my_events(page: ft.Page):
     )
 
     divider_line = ft.Divider(color="white", thickness=1)
-
-    def event_section(title, events, bg_color):
-        return ft.Container(
-            content=ft.Column([
-                ft.Text(title, size=22, weight=ft.FontWeight.BOLD, color=WHITE, text_align=ft.TextAlign.CENTER),
-                ft.Column(events if events else [ft.Text("Loading events...", color=WHITE, text_align=ft.TextAlign.CENTER)],
-                          alignment=ft.MainAxisAlignment.CENTER, expand=True),
-            ], spacing=10, alignment=ft.MainAxisAlignment.CENTER, expand=True),
-            bgcolor=bg_color,
-            border_radius=15,
-            padding=20,
-            expand=True
-        )
-
-    events_container = ft.Row([
-        event_section("Joined Events", past_events, MUSTARD_YELLOW),
-        event_section("Volunteered Events", current_events, MUSTARD_YELLOW),
-        event_section("My Created Events", upcoming_events, MUSTARD_YELLOW),
-    ], spacing=20, alignment=ft.MainAxisAlignment.CENTER, expand=True)
 
     content_container = ft.Container(
         content=events_container,
