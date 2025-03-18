@@ -21,10 +21,6 @@ SECONDARY_COLOR = "#0c3b2e"
 WHITE = "#ffffff"
 DARK_TEXT = "#333333"
 
-def get_header_controller():
-    from header import load_header  # Delayed import
-    return load_header
-
 def fetch_regions():
     try:
         response = httpx.get("http://127.0.0.1:8000/regions")
@@ -41,11 +37,6 @@ class CreateEventsController:
         self.page.padding = 0
 
     def show_create_event_form(self):
-        # -- HEADER --
-        HeaderController = get_header_controller()
-        header_container = HeaderController(self.page)
-        # Fixed header height so that main content starts below it.
-        header_container.height = 80
 
         # -- SIDEBAR (CACHED) --
         if "sidebar" not in self.page.data:
@@ -170,7 +161,6 @@ class CreateEventsController:
         # -- STACK LAYOUT (HEADER, SIDEBAR, MAIN CONTENT) --
         final_layout = ft.Stack(
             controls=[
-                header_container,
                 sidebar_container,
                 main_content,
             ],

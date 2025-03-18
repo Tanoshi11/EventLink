@@ -144,7 +144,6 @@ def create_event_view(page, controller):
     # Final layout including header and back button
     layout = Column(
         controls=[
-            controller.header,  # assume controller.header is set up (e.g., via a header controller)
             Container(
                 content=back_button,
                 alignment=ft.alignment.top_left,
