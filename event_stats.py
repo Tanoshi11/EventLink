@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import io
 import base64
 from datetime import datetime
+from controller.sidebar_controller import SidebarController
 from header import load_header  # Import the header function
 
 # Define theme colors
@@ -51,6 +52,14 @@ def main(page: ft.Page):
     page.bgcolor = BACKGROUND_COLOR
     page.padding = 0
 
+    # Load Sidebar
+    if "sidebar" not in page.data:
+        sidebar_controller = SidebarController(page)
+        sidebar = sidebar_controller.build()
+        page.data["sidebar"] = sidebar
+    else:
+        sidebar = page.data["sidebar"]
+
     taskbar = load_header(page)  # Load the header
 
     event_stats_header = ft.Container(
@@ -58,8 +67,10 @@ def main(page: ft.Page):
             ft.Icon(ft.icons.INSIGHTS, color=WHITE, size=30),
             ft.Text("Event Stats", size=28, weight=ft.FontWeight.BOLD, color=WHITE)
         ], spacing=15, alignment=ft.MainAxisAlignment.START),
-        margin=ft.padding.only(left=30, top=20)
+        margin=ft.margin.only(left=30, top=40)
     )
+
+    divider_line = ft.Divider(color=WHITE, thickness=2)
 
     available_years = fetch_available_years()
     selected_year = available_years[0] if available_years else str(datetime.now().year)
@@ -108,15 +119,24 @@ def main(page: ft.Page):
         margin=ft.margin.only(top=20)
     )
 
-    page.add(
-        taskbar,
-        event_stats_header,
-        ft.Divider(color=WHITE, thickness=2),
-        ft.Column([
+    main_content = ft.Container(
+        content=ft.Column([
+            event_stats_header,
+            divider_line,
             graph_section,
             stats_button
-        ], alignment=ft.MainAxisAlignment.CENTER, spacing=20)
+        ], alignment=ft.MainAxisAlignment.CENTER, spacing=20),
+        margin=ft.margin.only(left=270, top=30, right=40),
+        expand=True
     )
+
+    layout = ft.Stack(
+        controls=[taskbar, sidebar, main_content],
+        expand=True
+    )
+
+    page.controls.clear()
+    page.add(layout)
     page.update()
 
 def go_my_events(page):
