@@ -7,22 +7,19 @@ from flet import (
     Text,
     TextField,
     ElevatedButton,
-    Image,
     Dropdown,
-    border_radius,
     Alignment
 )
 import datetime
 import httpx
 from controller.sidebar_controller import SidebarController
 
-# Color constants (adjust as needed)
-PAGE_BG_COLOR = "#0C3B2E"
-HEADER_BG_COLOR = "#A8730A"
-CONTAINER_BG_COLOR = "#5F7755"
+PAGE_BG_COLOR = "#0C3B2E"    # Dark green (used for page & sidebar)
 TEXT_COLOR = "#FDF7E3"
 ACCENT_COLOR = "#ffba00"
 SECONDARY_COLOR = "#0c3b2e"
+WHITE = "#ffffff"
+DARK_TEXT = "#333333"
 
 def get_header_controller():
     from header import load_header  # Delayed import
@@ -36,26 +33,6 @@ def fetch_regions():
     except:
         return []
 
-def validate_date(date_str):
-    if not date_str:
-        return "Date is required."
-    try:
-        dt = datetime.datetime.strptime(date_str, "%Y-%m-%d")
-    except ValueError:
-        return "Invalid date format. Use YYYY-MM-DD."
-    if dt.date() < datetime.date.today():
-        return "Date must be today or later."
-    return None
-
-def validate_time(time_str):
-    if not time_str:
-        return "Time is required."
-    try:
-        datetime.datetime.strptime(time_str, "%H:%M")
-        return None
-    except ValueError:
-        return "Invalid time format. Use HH:MM (24-hour)."
-
 class CreateEventsController:
     def __init__(self, page: ft.Page):
         self.page = page
@@ -64,125 +41,84 @@ class CreateEventsController:
         self.page.padding = 0
 
     def show_create_event_form(self):
-        """Build and display the Create Event form with a fixed-width sidebar."""
-      
+        # -- HEADER --
         HeaderController = get_header_controller()
         header_container = HeaderController(self.page)
+        # Fixed header height so that main content starts below it.
+        header_container.height = 80
 
-       
-        sidebar_controller = SidebarController(self.page)
-        sidebar_view = sidebar_controller.build()
+        # -- SIDEBAR (CACHED) --
+        if "sidebar" not in self.page.data:
+            sidebar_controller = SidebarController(self.page)
+            sidebar = sidebar_controller.build()
+            self.page.data["sidebar"] = sidebar
+        else:
+            sidebar = self.page.data["sidebar"]
+
         sidebar_container = Container(
-            content=sidebar_view,
+            content=sidebar,
             width=250,
-            height=1300,         
-            expand=False,      
             bgcolor=PAGE_BG_COLOR,
+            expand=False,
         )
 
-      
-        def handle_date_pick(e):
-            selected_date = e.control.value
-            event_date.value = selected_date.strftime('%Y-%m-%d')
-            self.page.update()
-
-        def dismiss_date_picker(e):
-            self.page.update()
-
-        event_date = TextField(
-            label="Event Date (YYYY-MM-DD)",
-            width=400,
-            suffix=ft.IconButton(
-                icon=ft.icons.CALENDAR_MONTH,
-                on_click=lambda e: self.page.open(
-                    ft.DatePicker(
-                        first_date=datetime.datetime.now(),
-                        last_date=datetime.datetime(year=3000, month=12, day=31),
-                        on_change=handle_date_pick,
-                        on_dismiss=dismiss_date_picker,
-                    )
-                )
-            )
-        )
-
-        def handle_start_time(e):
-            selected_time = e.control.value
-            if selected_time:
-                time_start_field.value = selected_time.strftime("%H:%M")
-                self.page.update()
-
-        def handle_end_time(e):
-            selected_time = e.control.value
-            if selected_time:
-                time_end_field.value = selected_time.strftime("%H:%M")
-                self.page.update()
-
-        time_start_field = TextField(
-            label="Start Time (HH:MM)",
-            width=195,
-            suffix=ft.IconButton(
-                icon=ft.icons.ACCESS_TIME,
-                on_click=lambda e: self.page.open(
-                    ft.TimePicker(on_change=handle_start_time)
-                )
-            )
-        )
-
-        time_end_field = TextField(
-            label="End Time (HH:MM)",
-            width=195,
-            suffix=ft.IconButton(
-                icon=ft.icons.ACCESS_TIME,
-                on_click=lambda e: self.page.open(
-                    ft.TimePicker(on_change=handle_end_time)
-                )
-            )
-        )
-
-        time_row = Row(controls=[time_start_field, time_end_field], spacing=10)
-
-        # Other form fields
+        # -- FORM FIELDS --
         event_name = TextField(label="Event Name", width=400)
         event_type = Dropdown(
             label="Event Type",
             width=400,
             options=[
-                ft.dropdown.Option("Arts"),
-                ft.dropdown.Option("Business"),
-                ft.dropdown.Option("Charity"),
-                ft.dropdown.Option("Community"),
-                ft.dropdown.Option("Education"),
-                ft.dropdown.Option("Entertainment"),
-                ft.dropdown.Option("Environment"),
-                ft.dropdown.Option("Food"),
-                ft.dropdown.Option("Gaming"),
-                ft.dropdown.Option("Health"),
-                ft.dropdown.Option("Music"),
-                ft.dropdown.Option("Politics"),
-                ft.dropdown.Option("Sports"),
-                ft.dropdown.Option("Technology"),
-                ft.dropdown.Option("Travel"),
-            ]
+            ft.dropdown.Option("Arts"),
+            ft.dropdown.Option("Business"),
+            ft.dropdown.Option("Charity"),
+            ft.dropdown.Option("Community"),
+            ft.dropdown.Option("Education"),
+            ft.dropdown.Option("Entertainment"),
+            ft.dropdown.Option("Environment"),
+            ft.dropdown.Option("Food"),
+            ft.dropdown.Option("Gaming"),
+            ft.dropdown.Option("Health"),
+            ft.dropdown.Option("Music"),
+            ft.dropdown.Option("Politics"),
+            ft.dropdown.Option("Sports"),
+            ft.dropdown.Option("Technology"),
+            ft.dropdown.Option("Travel"),
+            ],
         )
+        event_date = TextField(label="Event Date (YYYY-MM-DD)", width=400)
+        time_start_field = TextField(label="Start Time (HH:MM)", width=195)
+        time_end_field = TextField(label="End Time (HH:MM)", width=195)
+
+        time_row = ft.Row(
+            controls=[time_start_field, time_end_field],
+            spacing=10
+        )
+
+        event_attendees = TextField(label="Guest Limit", width=400)
+        event_ticket_price = TextField(label="Ticket Price", width=400)
+
         luzon_regions = fetch_regions()
         event_location = Dropdown(
             label="Location",
             width=400,
-            options=[ft.dropdown.Option(region) for region in luzon_regions]
+            options=[ft.dropdown.Option(region) for region in luzon_regions],
         )
-        event_attendees = TextField(label="Guest Limit", width=400)
-        event_ticket_price = TextField(label="Ticket Price", width=400)
-        event_description = TextField(label="Description", multiline=True, width=400, height=120)
+        event_description = TextField(
+            label="Description",
+            multiline=True,
+            width=400,
+            height=120
+        )
 
         def submit_form(e):
             # Validate and submit logic
             # ...
             self.page.update()
 
-        # 4. Build form layout
+        # -- FORM LAYOUT --
         form_column = Column(
             controls=[
-                Text("Create Event", size=24, weight=ft.FontWeight.BOLD, color=TEXT_COLOR),
+                Text("Create Event", size=24, weight=ft.FontWeight.BOLD, color=WHITE),
                 event_name,
                 event_type,
                 event_date,
@@ -196,37 +132,51 @@ class CreateEventsController:
                     on_click=submit_form,
                     bgcolor=ACCENT_COLOR,
                     color=SECONDARY_COLOR,
-                    width=120
+                    width=120,
                 ),
             ],
-            spacing=12
+            spacing=12,
+            alignment="center"
         )
 
+        # Inner container (the form "card") with rounded borders, padding, and green background.
         form_container = Container(
             content=form_column,
-            bgcolor="#D6AA54",  
+            alignment=ft.alignment.center,
+            border_radius=20,
             padding=20,
-            border_radius=10,
-            expand=True  
+            width=500,
+            bgcolor=PAGE_BG_COLOR,
         )
 
-       
-        main_content = Row(
-            controls=[sidebar_container, form_container],
-            alignment=ft.MainAxisAlignment.START,
-            expand=True
+        # Main container that fills the available area to the right and bottom.
+        content_container = Container(
+            content=form_container,
+            bgcolor="#D6AA54",
+            border_radius=0,
+            padding=20,
+            expand=True,
+            alignment=ft.alignment.center,
         )
 
-        
-        final_layout = Column(
+        # Offset container so it doesn't overlap the sidebar & header.
+        main_content = Container(
+            content=content_container,
+            margin=ft.margin.only(left=250, top=80),
+            expand=True,
+            alignment=ft.alignment.center,
+        )
+
+        # -- STACK LAYOUT (HEADER, SIDEBAR, MAIN CONTENT) --
+        final_layout = ft.Stack(
             controls=[
-                header_container,   
-                main_content        
+                header_container,
+                sidebar_container,
+                main_content,
             ],
             expand=True
         )
 
-        # Clear and add
         self.page.controls.clear()
         self.page.add(final_layout)
         self.page.update()
@@ -237,26 +187,6 @@ class CreateEventsController:
 def load_create_event(page: ft.Page):
     controller = CreateEventsController(page)
     controller.show_create_event_form()
-
-def load_homepage(page: ft.Page):
-    page.controls.clear()
-    import controller.homepg_controller as homepg
-    homepg.main(page)
-
-def load_login(page: ft.Page):
-    page.floating_action_button = None
-    # ...
-    pass
-
-def load_my_events(page: ft.Page):
-    import my_events
-    page.controls.clear()
-    my_events.load_my_events(page)
-    page.update()
-
-def load_profile(page: ft.Page):
-    page.floating_action_button = None
-    pass
 
 if __name__ == "__main__":
     ft.app(target=load_create_event)
