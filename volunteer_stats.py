@@ -5,10 +5,9 @@ import io
 import base64
 from datetime import datetime
 from controller.sidebar_controller import SidebarController
-from header import load_header  # Import the header function
 
 # Define theme colors
-BACKGROUND_COLOR = "#c69c5d"
+BACKGROUND_COLOR = "#d6aa54"
 DARK_RED = "#d9534f"
 GREEN = "#5cb85c"
 MUSTARD_YELLOW = "#f0ad4e"
@@ -58,7 +57,6 @@ def main(page: ft.Page):
     else:
         sidebar = page.data["sidebar"]
 
-    taskbar = load_header(page)  # Load the header
 
     volunteer_stats_header = ft.Container(
         content=ft.Row([
@@ -117,7 +115,7 @@ def main(page: ft.Page):
     )
 
     layout = ft.Stack(
-        controls=[taskbar, sidebar, main_content],
+        controls=[sidebar, main_content],
         expand=True
     )
 
