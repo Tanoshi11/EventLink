@@ -148,6 +148,7 @@ class CreateEventsController:
             padding=20,
             expand=True,
             alignment=ft.alignment.center,
+            margin=ft.margin.only(top =-80)
         )
 
         # Offset container so it doesn't overlap the sidebar & header.
